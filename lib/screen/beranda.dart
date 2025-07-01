@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../model/recipe.dart';
-import '../service/APIService.dart';
+import '../service/ResepService.dart';
+import '../service/ResepService.dart'; // Update import ke service yang baru
 import '../detail.dart'; // Import halaman detail
 
 void main() {
@@ -24,13 +25,14 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Service layer untuk Recipe
+// Service layer untuk Recipe - FIXED
 class RecipeService {
   static Future<List<Recipe>> getRecipes() async {
     try {
       debugPrint('🔍 Fetching recipes from API...');
 
-      final List<dynamic> data = await ApiService.fetchResep();
+      // Perbaikan: Gunakan ResepService yang baru
+      final List<Recipe> data = await ResepService.fetchResep();
       debugPrint('📡 Received ${data.length} recipes from API');
 
       if (data.isEmpty) {
@@ -38,18 +40,7 @@ class RecipeService {
         return _getDummyRecipes();
       }
 
-      List<Recipe> recipes = [];
-      for (var item in data) {
-        try {
-          if (item is Map<String, dynamic>) {
-            recipes.add(Recipe.fromJson(item));
-          }
-        } catch (e) {
-          debugPrint('⚠️ Error parsing recipe: $e');
-        }
-      }
-
-      return recipes.isNotEmpty ? recipes : _getDummyRecipes();
+      return data.isNotEmpty ? data : _getDummyRecipes();
 
     } catch (e) {
       debugPrint('❌ Error fetching recipes: $e');
@@ -60,22 +51,43 @@ class RecipeService {
   static List<Recipe> _getDummyRecipes() {
     return [
       const Recipe(
-        id: 15, userId: 1, namaMasakan: 'Nasi Goreng Spesial', kategoriId: 1,
-        waktuMemasak: 20, bahanUtama: 'Nasi, Telur, Ayam, Kecap',
+        id: 15,
+        userId: 1,
+        namaMasakan: 'Nasi Goreng Spesial',
+        kategoriId: 1,
+        waktuMemasak: 20,
+        bahanUtama: 'Nasi, Telur, Ayam, Kecap',
         deskripsi: 'Nasi goreng dengan tambahan ayam suwir dan telur, cocok untuk sarapan.',
-        createdAt: '2025-06-24 11:40:09', levelKesulitan: 'Sedang', jenisWaktu: 'Sarapan',
+        createdAt: '2025-06-24 11:40:09',
+        levelKesulitan: 'Sedang',
+        jenisWaktu: 'Sarapan',
+        userName: 'Ahmad', // Tambahkan userName
       ),
       const Recipe(
-        id: 14, userId: 1, namaMasakan: 'Rendang Daging', kategoriId: 1,
-        waktuMemasak: 150, bahanUtama: 'Daging Sapi',
+        id: 14,
+        userId: 2,
+        namaMasakan: 'Rendang Daging',
+        kategoriId: 1,
+        waktuMemasak: 150,
+        bahanUtama: 'Daging Sapi',
         deskripsi: 'Masakan tradisional Padang yang kaya rempah',
-        createdAt: '2024-01-01 00:00:00', levelKesulitan: 'Sulit', jenisWaktu: 'Makan Siang',
+        createdAt: '2024-01-01 00:00:00',
+        levelKesulitan: 'Sulit',
+        jenisWaktu: 'Makan Siang',
+        userName: 'Sari', // Tambahkan userName
       ),
       const Recipe(
-        id: 13, userId: 1, namaMasakan: 'Gado-gado Jakarta', kategoriId: 4,
-        waktuMemasak: 45, bahanUtama: 'Sayuran',
+        id: 13,
+        userId: 3,
+        namaMasakan: 'Gado-gado Jakarta',
+        kategoriId: 4,
+        waktuMemasak: 45,
+        bahanUtama: 'Sayuran',
         deskripsi: 'Salad sayuran segar dengan bumbu kacang',
-        createdAt: '2024-01-05 00:00:00', levelKesulitan: 'Mudah', jenisWaktu: 'Makan Siang',
+        createdAt: '2024-01-05 00:00:00',
+        levelKesulitan: 'Mudah',
+        jenisWaktu: 'Makan Siang',
+        userName: 'Budi', // Tambahkan userName
       ),
     ];
   }
@@ -447,7 +459,8 @@ class HomeScreenState extends State<HomeScreen> {
                         child: const Icon(Icons.person, size: 12, color: Colors.white),
                       ),
                       const SizedBox(width: 8),
-                      const Text('Chef Rasa-Rasa', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      // PERBAIKAN: Gunakan recipe.userName bukan recipe.userId
+                      Text('Chef ${recipe.userName}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                       const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
