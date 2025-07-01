@@ -1,4 +1,3 @@
-// lib/screens/bookmark_screen.dart
 import 'package:flutter/material.dart';
 import '../model/recipe.dart';
 
@@ -6,10 +5,10 @@ class BookmarkScreen extends StatefulWidget {
   const BookmarkScreen({Key? key}) : super(key: key);
 
   @override
-  BookmarkScreenState createState() => BookmarkScreenState();
+  State<BookmarkScreen> createState() => _BookmarkScreenState();
 }
 
-class BookmarkScreenState extends State<BookmarkScreen> {
+class _BookmarkScreenState extends State<BookmarkScreen> {
   List<Recipe> _bookmarkedRecipes = [];
   bool _isLoading = false;
 
@@ -21,11 +20,8 @@ class BookmarkScreenState extends State<BookmarkScreen> {
 
   Future<void> _loadBookmarkedRecipes() async {
     setState(() => _isLoading = true);
+    await Future.delayed(const Duration(seconds: 1)); // Simulasi fetch dari storage/API
 
-    // Simulate loading
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Dummy bookmarked recipes
     setState(() {
       _bookmarkedRecipes = [
         const Recipe(
@@ -98,35 +94,28 @@ class BookmarkScreenState extends State<BookmarkScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         title: const Text(
           'Resep Tersimpan',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
           if (_bookmarkedRecipes.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.clear_all, color: Colors.orange),
-              onPressed: () {
-                _showClearAllDialog();
-              },
+              onPressed: _showClearAllDialog,
             ),
         ],
       ),
-      body: SafeArea(
-        child: _isLoading
-            ? _buildLoadingState()
-            : _bookmarkedRecipes.isEmpty
-            ? _buildEmptyState()
-            : _buildBookmarkList(),
-      ),
+      backgroundColor: Colors.grey.shade50,
+      body: _isLoading
+          ? _buildLoadingState()
+          : _bookmarkedRecipes.isEmpty
+          ? _buildEmptyState()
+          : _buildBookmarkList(),
     );
   }
 
@@ -137,10 +126,7 @@ class BookmarkScreenState extends State<BookmarkScreen> {
         children: [
           CircularProgressIndicator(color: Colors.orange),
           SizedBox(height: 16),
-          Text(
-            'Memuat bookmark...',
-            style: TextStyle(color: Colors.grey),
-          ),
+          Text('Memuat bookmark...', style: TextStyle(color: Colors.grey)),
         ],
       ),
     );
@@ -151,33 +137,22 @@ class BookmarkScreenState extends State<BookmarkScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.bookmark_border,
-            size: 80,
-            color: Colors.grey.shade400,
-          ),
+          const Icon(Icons.bookmark_border, size: 80, color: Colors.grey),
           const SizedBox(height: 20),
-          Text(
+          const Text(
             'Belum Ada Resep Tersimpan',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey),
           ),
           const SizedBox(height: 10),
-          Text(
+          const Text(
             'Simpan resep favorit Anda untuk\nmudah ditemukan nanti',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Colors.grey, fontSize: 14),
           ),
           const SizedBox(height: 30),
           ElevatedButton.icon(
             onPressed: () {
-              // Navigate to search or home
+              // Disarankan: gunakan state management atau callback dari parent untuk pindah ke tab index 1
             },
             icon: const Icon(Icons.search),
             label: const Text('Cari Resep'),
@@ -243,7 +218,6 @@ class BookmarkScreenState extends State<BookmarkScreen> {
         padding: const EdgeInsets.all(15),
         child: Row(
           children: [
-            // Recipe Image Placeholder
             Container(
               width: 70,
               height: 70,
@@ -251,58 +225,31 @@ class BookmarkScreenState extends State<BookmarkScreen> {
                 color: Colors.orange.shade100,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
-                Icons.restaurant,
-                color: Colors.orange,
-                size: 35,
-              ),
+              child: const Icon(Icons.restaurant, color: Colors.orange, size: 35),
             ),
             const SizedBox(width: 15),
-
-            // Recipe Details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    recipe.namaMasakan,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+                  Text(recipe.namaMasakan, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 6),
                   Text(
                     recipe.deskripsi,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(
-                        Icons.access_time,
-                        size: 14,
-                        color: Colors.grey.shade500,
-                      ),
+                      Icon(Icons.access_time, size: 14, color: Colors.grey.shade500),
                       const SizedBox(width: 4),
-                      Text(
-                        '${recipe.waktuMemasak} min',
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 12,
-                        ),
-                      ),
+                      Text('${recipe.waktuMemasak} min',
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
                       const SizedBox(width: 15),
-                      Icon(
-                        Icons.signal_cellular_alt,
-                        size: 14,
-                        color: _getDifficultyColor(recipe.levelKesulitan),
-                      ),
+                      Icon(Icons.signal_cellular_alt,
+                          size: 14, color: _getDifficultyColor(recipe.levelKesulitan)),
                       const SizedBox(width: 4),
                       Text(
                         recipe.levelKesulitan,
@@ -317,33 +264,17 @@ class BookmarkScreenState extends State<BookmarkScreen> {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Container(
-                        width: 18,
-                        height: 18,
-                        decoration: const BoxDecoration(
-                          color: Colors.orange,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.person,
-                          size: 10,
-                          color: Colors.white,
-                        ),
+                      const CircleAvatar(
+                        radius: 9,
+                        backgroundColor: Colors.orange,
+                        child: Icon(Icons.person, size: 10, color: Colors.white),
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        recipe.userName ?? 'Unknown Chef',
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 11,
-                        ),
-                      ),
+                      Text(recipe.userName ?? 'Unknown Chef',
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
                       const Spacer(),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: Colors.orange.shade50,
                           borderRadius: BorderRadius.circular(10),
@@ -351,10 +282,7 @@ class BookmarkScreenState extends State<BookmarkScreen> {
                         child: Text(
                           recipe.jenisWaktu,
                           style: const TextStyle(
-                            color: Colors.orange,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
+                              color: Colors.orange, fontSize: 10, fontWeight: FontWeight.w500),
                         ),
                       ),
                     ],
@@ -362,15 +290,9 @@ class BookmarkScreenState extends State<BookmarkScreen> {
                 ],
               ),
             ),
-
-            // Bookmark Icon
             IconButton(
               onPressed: () => _removeBookmark(recipe),
-              icon: const Icon(
-                Icons.bookmark,
-                color: Colors.orange,
-                size: 24,
-              ),
+              icon: const Icon(Icons.bookmark, color: Colors.orange, size: 24),
             ),
           ],
         ),
@@ -397,9 +319,7 @@ class BookmarkScreenState extends State<BookmarkScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Hapus Semua Bookmark'),
-          content: const Text(
-            'Apakah Anda yakin ingin menghapus semua resep yang disimpan?',
-          ),
+          content: const Text('Apakah Anda yakin ingin menghapus semua resep yang disimpan?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -412,9 +332,7 @@ class BookmarkScreenState extends State<BookmarkScreen> {
                 });
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Semua bookmark telah dihapus'),
-                  ),
+                  const SnackBar(content: Text('Semua bookmark telah dihapus')),
                 );
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),

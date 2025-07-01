@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+/*import 'package:flutter/material.dart';
 import '../screen/splashscreen.dart';
 import 'route/app_routes.dart';
 import 'screen/splashscreen.dart';
@@ -28,3 +28,4 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+*/
