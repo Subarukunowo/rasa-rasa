@@ -1,32 +1,13 @@
+// lib/screens/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Rasa Rasa App',
-      theme: ThemeData(
-        primarySwatch: Colors.orange,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: const ProfileScreen(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
+import '../model/recipe.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? userId;
 
-  const ProfileScreen({super.key, this.userId});
+  const ProfileScreen({Key? key, this.userId}) : super(key: key);
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -37,7 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _errorMessage;
   Map<String, dynamic>? _userProfile;
   List<dynamic> _foodPhotos = [];
-  List<dynamic> _favoriteRecipes = [];
+  List<Recipe> _favoriteRecipes = [];
   List<String> _favoriteFoods = [];
 
   // Constants
@@ -147,34 +128,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         if (responseData['success'] == true) {
-          _favoriteRecipes = responseData['data'] ?? [];
+          final List<dynamic> data = responseData['data'] ?? [];
+          _favoriteRecipes = data.map((json) {
+            try {
+              return Recipe.fromJson(json);
+            } catch (e) {
+              debugPrint('Error parsing favorite recipe: $e');
+              return null;
+            }
+          }).where((recipe) => recipe != null).cast<Recipe>().toList();
           return;
         }
       }
       throw Exception('Invalid response from server');
     } catch (e) {
       _favoriteRecipes = [
-        {
-          'name': 'Rendang Daging',
-          'image': 'https://images.unsplash.com/photo-1574653163984-0742ba8c7702?w=200&h=200&fit=crop',
-          'cooking_time': '3 jam',
-          'rating': 4.8,
-          'author': 'Malaikat Israfil'
-        },
-        {
-          'name': 'Tongseng Kambing',
-          'image': 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=200&h=200&fit=crop',
-          'cooking_time': '2 jam',
-          'rating': 4.6,
-          'author': 'Malaikat Israfil'
-        },
-        {
-          'name': 'Gudeg Jogja',
-          'image': 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=200&h=200&fit=crop',
-          'cooking_time': '4 jam',
-          'rating': 4.7,
-          'author': 'Malaikat Israfil'
-        },
+        const Recipe(
+          id: 1,
+          userId: 1,
+          namaMasakan: 'Rendang Daging',
+          kategoriId: 1,
+          waktuMemasak: 180,
+          bahanUtama: 'Daging Sapi, Santan, Cabai',
+          deskripsi: 'Masakan tradisional Padang yang kaya rempah',
+          createdAt: '2024-01-01 00:00:00',
+          levelKesulitan: 'Sulit',
+          jenisWaktu: 'Makan Siang',
+          userName: 'Malaikat Israfil',
+          gambar: '',
+        ),
+        const Recipe(
+          id: 2,
+          userId: 1,
+          namaMasakan: 'Tongseng Kambing',
+          kategoriId: 1,
+          waktuMemasak: 120,
+          bahanUtama: 'Daging Kambing, Santan',
+          deskripsi: 'Gulai kambing dengan kuah santan pedas',
+          createdAt: '2024-01-02 00:00:00',
+          levelKesulitan: 'Sedang',
+          jenisWaktu: 'Makan Malam',
+          userName: 'Malaikat Israfil',
+          gambar: '',
+        ),
+        const Recipe(
+          id: 3,
+          userId: 1,
+          namaMasakan: 'Gudeg Jogja',
+          kategoriId: 2,
+          waktuMemasak: 240,
+          bahanUtama: 'Nangka Muda, Santan',
+          deskripsi: 'Masakan khas Jogjakarta yang manis dan gurih',
+          createdAt: '2024-01-03 00:00:00',
+          levelKesulitan: 'Sulit',
+          jenisWaktu: 'Makan Siang',
+          userName: 'Malaikat Israfil',
+          gambar: '',
+        ),
       ];
       debugPrint('Using fallback favorite recipes: $e');
     }
@@ -224,6 +234,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildAppBar(),
                 _buildProfileHeader(),
                 const SizedBox(height: 24),
+                _buildStatsSection(),
+                const SizedBox(height: 24),
                 _buildFoodPhotos(),
                 const SizedBox(height: 24),
                 _buildFavoriteFoods(),
@@ -235,7 +247,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
@@ -245,7 +256,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
           ),
           SizedBox(height: 16),
           Text(
@@ -288,7 +299,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ElevatedButton(
               onPressed: _loadUserProfile,
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
+                backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
               ),
               child: const Text('Try Again'),
@@ -425,6 +436,72 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildStatsSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildStatItem('Resep', '${_favoriteRecipes.length}', Icons.restaurant_menu),
+          _buildStatDivider(),
+          _buildStatItem('Pengikut', '148', Icons.people),
+          _buildStatDivider(),
+          _buildStatItem('Mengikuti', '23', Icons.person_add),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(
+          icon,
+          color: Colors.orange,
+          size: 24,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatDivider() {
+    return Container(
+      height: 40,
+      width: 1,
+      color: Colors.grey.shade300,
+    );
+  }
+
   Widget _buildFoodPhotos() {
     return Container(
       color: Colors.white,
@@ -450,7 +527,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: const Text(
                     'See All',
                     style: TextStyle(
-                      color: primaryColor,
+                      color: Colors.orange,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -500,7 +577,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: const Center(
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
                         ),
                       ),
                     );
@@ -544,13 +621,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  border: Border.all(color: primaryColor),
+                  border: Border.all(color: Colors.orange),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   food,
                   style: const TextStyle(
-                    color: primaryColor,
+                    color: Colors.orange,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -587,7 +664,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: const Text(
                     'See All',
                     style: TextStyle(
-                      color: primaryColor,
+                      color: Colors.orange,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -618,25 +695,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        recipe['image'] ?? '',
+                      child: Container(
                         width: 60,
                         height: 60,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[300],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.restaurant,
-                              color: Colors.grey,
-                            ),
-                          );
-                        },
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.restaurant,
+                          color: Colors.orange,
+                          size: 30,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -645,7 +715,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            recipe['name'] ?? 'Unknown Recipe',
+                            recipe.namaMasakan,
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
@@ -661,7 +731,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                recipe['cooking_time'] ?? 'N/A',
+                                '${recipe.waktuMemasak} menit',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey,
@@ -675,7 +745,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${recipe['rating'] ?? 'N/A'}',
+                                recipe.levelKesulitan,
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey,
@@ -693,7 +763,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                'by ${recipe['author'] ?? 'Unknown'}',
+                                'by ${recipe.userName ?? 'Unknown'}',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey,
@@ -706,7 +776,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const Icon(
                       Icons.bookmark,
-                      color: primaryColor,
+                      color: Colors.orange,
                     ),
                   ],
                 ),
@@ -714,57 +784,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      height: 80,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          )
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildBottomNavItem(Icons.home, false, () {
-            // Navigate to home
-          }),
-          _buildBottomNavItem(Icons.search, false, () {
-            // Navigate to search
-          }),
-          _buildBottomNavItem(Icons.bookmark_border, false, () {
-            // Navigate to bookmarks
-          }),
-          _buildBottomNavItem(Icons.person, true, () {
-            // Current page
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNavItem(IconData icon, bool isActive, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isActive ? primaryColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          icon,
-          color: isActive ? Colors.white : Colors.grey[600],
-          size: 24,
-        ),
       ),
     );
   }

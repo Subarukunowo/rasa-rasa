@@ -1,84 +1,9 @@
+// lib/screens/search_screen.dart
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Rasa-Rasa Search',
-      theme: ThemeData(
-        primarySwatch: Colors.orange,
-        fontFamily: 'Roboto',
-      ),
-      home: const SearchScreen(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
-
-// Model untuk Resep
-class Recipe {
-  final int id;
-  final int userId;
-  final String namaMasakan;
-  final int kategoriId;
-  final int waktuMemasak;
-  final String bahanUtama;
-  final String deskripsi;
-  final String createdAt;
-  final String levelKesulitan;
-  final String jenisWaktu;
-  final String? video;
-
-  const Recipe({
-    required this.id,
-    required this.userId,
-    required this.namaMasakan,
-    required this.kategoriId,
-    required this.waktuMemasak,
-    required this.bahanUtama,
-    required this.deskripsi,
-    required this.createdAt,
-    required this.levelKesulitan,
-    required this.jenisWaktu,
-    this.video,
-  });
-
-  factory Recipe.fromJson(Map<String, dynamic> json) {
-    return Recipe(
-      id: _parseInt(json['id']),
-      userId: _parseInt(json['user_id']),
-      namaMasakan: _parseString(json['nama_masakan']),
-      kategoriId: _parseInt(json['kategori_id']),
-      waktuMemasak: _parseInt(json['waktu_memasak']),
-      bahanUtama: _parseString(json['bahan_utama']),
-      deskripsi: _parseString(json['deskripsi']),
-      createdAt: _parseString(json['created_at']),
-      levelKesulitan: _parseString(json['level_kesulitan']),
-      jenisWaktu: _parseString(json['jenis_waktu']),
-      video: json['video'] as String?,
-    );
-  }
-
-  static int _parseInt(dynamic value) {
-    if (value == null) return 0;
-    if (value is int) return value;
-    if (value is String) return int.tryParse(value) ?? 0;
-    return 0;
-  }
-
-  static String _parseString(dynamic value) {
-    if (value == null) return '';
-    return value.toString();
-  }
-}
+import '../model/recipe.dart';
+import 'SearchResultScreen.dart';
 
 // Service untuk API
 class ApiService {
@@ -189,7 +114,8 @@ class ApiService {
         createdAt: '2025-06-24 11:40:09',
         levelKesulitan: 'Mudah',
         jenisWaktu: 'Sarapan',
-        video: 'https://www.youtube.com/watch?v=dummyvideo123',
+        userName: 'Ahmad',
+        gambar: '',
       ),
       const Recipe(
         id: 14,
@@ -202,7 +128,8 @@ class ApiService {
         createdAt: '2024-01-01 00:00:00',
         levelKesulitan: 'Sedang',
         jenisWaktu: 'Makan Siang',
-        video: null,
+        userName: 'Sari',
+        gambar: '',
       ),
       const Recipe(
         id: 13,
@@ -215,7 +142,8 @@ class ApiService {
         createdAt: '2024-01-02 00:00:00',
         levelKesulitan: 'Mudah',
         jenisWaktu: 'Makan Malam',
-        video: null,
+        userName: 'Budi',
+        gambar: '',
       ),
       const Recipe(
         id: 12,
@@ -228,7 +156,8 @@ class ApiService {
         createdAt: '2024-01-04 00:00:00',
         levelKesulitan: 'Sedang',
         jenisWaktu: 'Makan Siang',
-        video: null,
+        userName: 'Ahmad',
+        gambar: '',
       ),
       const Recipe(
         id: 11,
@@ -241,7 +170,8 @@ class ApiService {
         createdAt: '2024-01-05 00:00:00',
         levelKesulitan: 'Mudah',
         jenisWaktu: 'Makan Siang',
-        video: null,
+        userName: 'Sari',
+        gambar: '',
       ),
     ];
   }
@@ -401,20 +331,16 @@ class SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.orange),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: const Text(
-          'Search',
+          'Cari Resep',
           style: TextStyle(
-            color: Colors.orange,
-            fontSize: 20,
+            color: Colors.black,
             fontWeight: FontWeight.bold,
           ),
         ),
+        automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [
@@ -430,7 +356,7 @@ class SearchScreenState extends State<SearchScreen> {
               controller: _searchController,
               focusNode: _searchFocusNode,
               decoration: InputDecoration(
-                hintText: 'Search',
+                hintText: 'Cari resep, bahan, atau kategori...',
                 hintStyle: TextStyle(color: Colors.grey.shade500),
                 prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
                 suffixIcon: _showHistory && _searchController.text.isNotEmpty
@@ -462,33 +388,6 @@ class SearchScreenState extends State<SearchScreen> {
             child: _buildContent(),
           ),
         ],
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: Colors.orange,
-          unselectedItemColor: Colors.grey,
-          currentIndex: 1, // Search tab active
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-            BottomNavigationBarItem(icon: Icon(Icons.search), label: ''),
-            BottomNavigationBarItem(icon: Icon(Icons.bookmark), label: ''),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
-          ],
-        ),
       ),
     );
   }
@@ -538,7 +437,7 @@ class SearchScreenState extends State<SearchScreen> {
         children: [
           // Most Liked Recipes
           const Text(
-            'Most Liked Recipes',
+            'Resep Terpopuler',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -560,7 +459,7 @@ class SearchScreenState extends State<SearchScreen> {
 
           // New Recipes
           const Text(
-            'New Recipes',
+            'Resep Terbaru',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -579,46 +478,116 @@ class SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildMostLikedCard(Recipe recipe) {
-    return Container(
-      height: 120,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.orange.shade300, Colors.orange.shade500],
+    return GestureDetector(
+      onTap: () => _performSearch(recipe.namaMasakan),
+      child: Container(
+        height: 120,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.orange.shade300, Colors.orange.shade500],
+                  ),
                 ),
               ),
+              Positioned(
+                bottom: 8,
+                left: 8,
+                right: 8,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      recipe.namaMasakan,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: const [
+                        Icon(Icons.star, size: 12, color: Colors.yellow),
+                        Icon(Icons.star, size: 12, color: Colors.yellow),
+                        Icon(Icons.star, size: 12, color: Colors.yellow),
+                        Icon(Icons.star, size: 12, color: Colors.yellow),
+                        Icon(Icons.star_border, size: 12, color: Colors.yellow),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNewRecipeCard(Recipe recipe) {
+    return GestureDetector(
+      onTap: () => _performSearch(recipe.namaMasakan),
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 3),
             ),
-            Positioned(
-              bottom: 8,
-              left: 8,
-              right: 8,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.restaurant, color: Colors.white, size: 25),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     recipe.namaMasakan,
                     style: const TextStyle(
-                      color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      fontSize: 14,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'New Recipes',
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontSize: 10,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -626,7 +595,7 @@ class SearchScreenState extends State<SearchScreen> {
                       Icon(Icons.star, size: 12, color: Colors.yellow),
                       Icon(Icons.star, size: 12, color: Colors.yellow),
                       Icon(Icons.star, size: 12, color: Colors.yellow),
-                      Icon(Icons.star, size: 12, color: Colors.yellow),
+                      Icon(Icons.star_border, size: 12, color: Colors.yellow),
                       Icon(Icons.star_border, size: 12, color: Colors.yellow),
                     ],
                   ),
@@ -636,422 +605,6 @@ class SearchScreenState extends State<SearchScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildNewRecipeCard(Recipe recipe) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.orange,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.restaurant, color: Colors.white, size: 25),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  recipe.namaMasakan,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                const Text(
-                  'New Recipes',
-                  style: TextStyle(
-                    color: Colors.orange,
-                    fontSize: 10,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: const [
-                    Icon(Icons.star, size: 12, color: Colors.yellow),
-                    Icon(Icons.star, size: 12, color: Colors.yellow),
-                    Icon(Icons.star, size: 12, color: Colors.yellow),
-                    Icon(Icons.star_border, size: 12, color: Colors.yellow),
-                    Icon(Icons.star_border, size: 12, color: Colors.yellow),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Search Results Screen - Halaman kedua (hasil search)
-class SearchResultsScreen extends StatefulWidget {
-  final String query;
-
-  const SearchResultsScreen({Key? key, required this.query}) : super(key: key);
-
-  @override
-  SearchResultsScreenState createState() => SearchResultsScreenState();
-}
-
-class SearchResultsScreenState extends State<SearchResultsScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocusNode = FocusNode();
-
-  List<Recipe> _searchResults = [];
-  List<String> _searchHistory = [];
-  List<String> _filteredHistory = [];
-
-  bool _isSearching = false;
-  bool _showHistory = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.text = widget.query;
-    _loadSearchHistory();
-    _performInitialSearch();
-
-    _searchController.addListener(_onSearchChanged);
-    _searchFocusNode.addListener(_onFocusChanged);
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _searchFocusNode.dispose();
-    super.dispose();
-  }
-
-  void _loadSearchHistory() {
-    setState(() {
-      _searchHistory = SearchHistoryService.getSearchHistory();
-      _filteredHistory = _searchHistory;
-    });
-  }
-
-  Future<void> _performInitialSearch() async {
-    await _performSearch(widget.query, saveToHistory: false);
-  }
-
-  void _onSearchChanged() {
-    final query = _searchController.text;
-
-    if (query.isEmpty) {
-      setState(() {
-        _showHistory = false;
-        _filteredHistory = _searchHistory;
-      });
-    } else {
-      // Filter history based on query
-      final filtered = _searchHistory
-          .where((item) => item.toLowerCase().contains(query.toLowerCase()))
-          .toList();
-
-      setState(() {
-        _filteredHistory = filtered;
-        _showHistory = true;
-      });
-    }
-  }
-
-  void _onFocusChanged() {
-    if (_searchFocusNode.hasFocus) {
-      setState(() {
-        _filteredHistory = _searchHistory;
-        if (_searchController.text.isNotEmpty) {
-          _showHistory = true;
-        }
-      });
-    }
-  }
-
-  Future<void> _performSearch(String query, {bool saveToHistory = true}) async {
-    if (query.trim().isEmpty) return;
-
-    if (saveToHistory) {
-      SearchHistoryService.addSearchHistory(query);
-      _loadSearchHistory();
-    }
-
-    setState(() {
-      _isSearching = true;
-      _showHistory = false;
-    });
-
-    try {
-      final results = await ApiService.searchRecipes(query);
-
-      if (mounted) {
-        setState(() {
-          _searchResults = results;
-          _isSearching = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error performing search: $e');
-      if (mounted) {
-        setState(() => _isSearching = false);
-      }
-    }
-  }
-
-  void _selectHistoryItem(String query) {
-    _searchController.text = query;
-    _searchFocusNode.unfocus();
-    _performSearch(query);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.orange),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Search',
-          style: TextStyle(
-            color: Colors.orange,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      body: Column(
-        children: [
-          // Search Bar
-          Container(
-            margin: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: TextField(
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              decoration: InputDecoration(
-                hintText: 'telur',
-                hintStyle: TextStyle(color: Colors.grey.shade500),
-                prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
-                suffixIcon: _showHistory && _searchController.text.isNotEmpty
-                    ? TextButton(
-                  onPressed: () {
-                    _searchFocusNode.unfocus();
-                    setState(() => _showHistory = false);
-                  },
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.orange),
-                  ),
-                )
-                    : _searchController.text.isNotEmpty
-                    ? IconButton(
-                  icon: const Icon(Icons.clear, color: Colors.grey),
-                  onPressed: () => _searchController.clear(),
-                )
-                    : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-              onSubmitted: (query) => _performSearch(query),
-            ),
-          ),
-
-          // Content
-          Expanded(
-            child: _buildContent(),
-          ),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: Colors.orange,
-          unselectedItemColor: Colors.grey,
-          currentIndex: 1, // Search tab active
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-            BottomNavigationBarItem(icon: Icon(Icons.search), label: ''),
-            BottomNavigationBarItem(icon: Icon(Icons.bookmark), label: ''),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContent() {
-    if (_isSearching) {
-      return const Center(child: CircularProgressIndicator(color: Colors.orange));
-    }
-
-    if (_showHistory && _searchController.text.isNotEmpty) {
-      return _buildSearchHistory();
-    }
-
-    return _buildSearchResults();
-  }
-
-  Widget _buildSearchHistory() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          // Sample search suggestions sesuai gambar
-          _buildHistoryItem('telur Benediktus'),
-          _buildHistoryItem('salad telur hijau'),
-          _buildHistoryItem('telur spanyol di atas roti panggang'),
-          _buildHistoryItem('sandwich bacon dan telur'),
-          _buildHistoryItem('roti telur dan jamur klasik'),
-          _buildHistoryItem('telur dan kacang hijau'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHistoryItem(String text) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade200),
-        ),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-        title: Text(
-          text,
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey.shade600,
-          ),
-        ),
-        onTap: () => _selectHistoryItem(text),
-      ),
-    );
-  }
-
-  Widget _buildSearchResults() {
-    if (_searchResults.isEmpty) {
-      return const Center(
-        child: Text(
-          'Tidak ada resep yang ditemukan',
-          style: TextStyle(color: Colors.grey, fontSize: 16),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: _searchResults.length,
-      itemBuilder: (context, index) {
-        final recipe = _searchResults[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 15),
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.3),
-                spreadRadius: 1,
-                blurRadius: 5,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.orange,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.restaurant, color: Colors.white),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      recipe.namaMasakan,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      recipe.bahanUtama,
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        Icon(Icons.access_time, size: 12, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${recipe.waktuMemasak} menit',
-                          style: const TextStyle(color: Colors.grey, fontSize: 12),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          '• ${recipe.levelKesulitan}',
-                          style: const TextStyle(color: Colors.orange, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

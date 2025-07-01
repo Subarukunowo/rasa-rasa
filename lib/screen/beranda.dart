@@ -2,9 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:rasarasa_app/service/TambahResep.dart';
 import '../model/recipe.dart';
+import '../route/app_routes.dart';
 import '../service/ResepService.dart'; // Import service yang sudah diperbaiki
 import 'detail.dart'; // Import halaman detail
-
+import '../screen/main_navigation.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -63,6 +64,7 @@ class RecipeService {
         levelKesulitan: 'Sedang',
         jenisWaktu: 'Sarapan',
         userName: 'Ahmad',
+        gambar: '', // Tambahkan parameter gambar kosong
       ),
       const Recipe(
         id: 14,
@@ -76,6 +78,7 @@ class RecipeService {
         levelKesulitan: 'Sulit',
         jenisWaktu: 'Makan Siang',
         userName: 'Sari',
+        gambar: '', // Tambahkan parameter gambar kosong
       ),
       const Recipe(
         id: 13,
@@ -89,6 +92,7 @@ class RecipeService {
         levelKesulitan: 'Mudah',
         jenisWaktu: 'Makan Siang',
         userName: 'Budi',
+        gambar: '', // Tambahkan parameter gambar kosong
       ),
     ];
   }
@@ -143,14 +147,17 @@ class HomeScreenState extends State<HomeScreen> {
 
   // ===== NAVIGATION METHODS =====
   void _navigateToRecipeDetail(Recipe recipe) {
-    debugPrint('🔄 Navigating to recipe detail: ${recipe.namaMasakan} (ID: ${recipe.id})');
+    debugPrint(
+        '🔄 Navigating to recipe detail: ${recipe.namaMasakan} (ID: ${recipe
+            .id})');
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => RecipeDetailScreen(
-          recipeId: recipe.id.toString(),
-          previousScreen: 'beranda',
-        ),
+        builder: (context) =>
+            RecipeDetailScreen(
+              recipeId: recipe.id.toString(),
+              previousScreen: 'beranda',
+            ),
       ),
     );
   }
@@ -447,7 +454,8 @@ class HomeScreenState extends State<HomeScreen> {
             child: GestureDetector(
               onTap: () {
                 final sarapanRecipes = recipes
-                    .where((r) => r.jenisWaktu.toLowerCase().contains('sarapan'))
+                    .where((r) =>
+                    r.jenisWaktu.toLowerCase().contains('sarapan'))
                     .toList();
                 if (sarapanRecipes.isNotEmpty) {
                   _navigateToRecipeDetail(sarapanRecipes.first);
@@ -761,13 +769,48 @@ class HomeScreenState extends State<HomeScreen> {
         selectedItemColor: Colors.orange,
         unselectedItemColor: Colors.grey,
         currentIndex: 0,
+        // Home screen = index 0
+        onTap: _onBottomNavTapped,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.bookmark), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Beranda',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Cari',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bookmark),
+            label: 'Bookmark',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profil',
+          ),
         ],
       ),
     );
   }
-}
+
+  // ===== BOTTOM NAVIGATION HANDLER =====
+  void _onBottomNavTapped(int index) {
+    switch (index) {
+      case 0:
+      // Already on home - tidak perlu navigation
+        break;
+      case 1:
+      // Navigate ke Search Screen
+        MainNavigation.navigateToSearch(context);
+        break;
+      case 2:
+      // Navigate ke Bookmark Screen
+        MainNavigation.navigateToBookmark(context);
+        break;
+      case 3:
+      // Navigate ke Profile Screen
+        MainNavigation.navigateToProfile(context);
+        break;
+    }
+  }
+  }
