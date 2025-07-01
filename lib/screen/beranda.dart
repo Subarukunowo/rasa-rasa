@@ -1,8 +1,9 @@
+// lib/main.dart atau lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
+import 'package:rasarasa_app/service/TambahResep.dart';
 import '../model/recipe.dart';
-import '../service/ResepService.dart';
-import '../service/ResepService.dart'; // Update import ke service yang baru
-import '../detail.dart'; // Import halaman detail
+import '../service/ResepService.dart'; // Import service yang sudah diperbaiki
+import 'detail.dart'; // Import halaman detail
 
 void main() {
   runApp(const MyApp());
@@ -25,13 +26,13 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Service layer untuk Recipe - FIXED
+// ===== SERVICE LAYER - SINGLE DEFINITION =====
 class RecipeService {
   static Future<List<Recipe>> getRecipes() async {
     try {
       debugPrint('🔍 Fetching recipes from API...');
 
-      // Perbaikan: Gunakan ResepService yang baru
+      // Gunakan ResepService yang sudah diperbaiki
       final List<Recipe> data = await ResepService.fetchResep();
       debugPrint('📡 Received ${data.length} recipes from API');
 
@@ -40,7 +41,7 @@ class RecipeService {
         return _getDummyRecipes();
       }
 
-      return data.isNotEmpty ? data : _getDummyRecipes();
+      return data;
 
     } catch (e) {
       debugPrint('❌ Error fetching recipes: $e');
@@ -61,7 +62,7 @@ class RecipeService {
         createdAt: '2025-06-24 11:40:09',
         levelKesulitan: 'Sedang',
         jenisWaktu: 'Sarapan',
-        userName: 'Ahmad', // Tambahkan userName
+        userName: 'Ahmad',
       ),
       const Recipe(
         id: 14,
@@ -74,7 +75,7 @@ class RecipeService {
         createdAt: '2024-01-01 00:00:00',
         levelKesulitan: 'Sulit',
         jenisWaktu: 'Makan Siang',
-        userName: 'Sari', // Tambahkan userName
+        userName: 'Sari',
       ),
       const Recipe(
         id: 13,
@@ -87,12 +88,13 @@ class RecipeService {
         createdAt: '2024-01-05 00:00:00',
         levelKesulitan: 'Mudah',
         jenisWaktu: 'Makan Siang',
-        userName: 'Budi', // Tambahkan userName
+        userName: 'Budi',
       ),
     ];
   }
 }
 
+// ===== HOME SCREEN =====
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -101,17 +103,20 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
+  // ===== STATE VARIABLES =====
   List<Recipe> recipes = [];
   bool isLoading = true;
   int selectedTabIndex = 0;
   String? errorMessage;
 
+  // ===== LIFECYCLE METHODS =====
   @override
   void initState() {
     super.initState();
     _loadRecipes();
   }
 
+  // ===== DATA METHODS =====
   Future<void> _loadRecipes() async {
     setState(() {
       isLoading = true;
@@ -136,8 +141,9 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Method untuk navigasi ke halaman detail
+  // ===== NAVIGATION METHODS =====
   void _navigateToRecipeDetail(Recipe recipe) {
+    debugPrint('🔄 Navigating to recipe detail: ${recipe.namaMasakan} (ID: ${recipe.id})');
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -149,9 +155,46 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ===== UPDATED: Navigate to Add Recipe Screen =====
+  Future<void> _navigateToAddRecipe() async {
+    debugPrint('🔄 Navigating to Add Recipe Screen');
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TambahResep(),
+      ),
+    );
+
+    // Refresh list jika resep baru berhasil ditambahkan
+    if (result == true) {
+      debugPrint('✅ Recipe added successfully, refreshing list...');
+      _loadRecipes();
+
+      // Tampilkan pesan sukses
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Resep berhasil ditambahkan!'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  // ===== BUILD METHOD =====
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: _buildAppBar(),
       body: SafeArea(
         child: isLoading
             ? _buildLoadingState()
@@ -159,7 +202,41 @@ class HomeScreenState extends State<HomeScreen> {
             ? _buildErrorState()
             : _buildMainContent(),
       ),
+      floatingActionButton: _buildFloatingActionButton(),
       bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  // ===== UI BUILDER METHODS =====
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      title: const Row(
+        children: [
+          Icon(Icons.restaurant_menu, color: Colors.orange, size: 28),
+          SizedBox(width: 8),
+          Text(
+            'Rasa-Rasa',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===== FloatingActionButton - HANYA INI YANG JADI TAMBAH RESEP =====
+  Widget _buildFloatingActionButton() {
+    return FloatingActionButton(
+      onPressed: _navigateToAddRecipe,
+      backgroundColor: Colors.orange,
+      foregroundColor: Colors.white,
+      tooltip: 'Tambah Resep Baru',
+      child: const Icon(Icons.add),
     );
   }
 
@@ -170,7 +247,10 @@ class HomeScreenState extends State<HomeScreen> {
         children: [
           CircularProgressIndicator(color: Colors.orange),
           SizedBox(height: 16),
-          Text('Memuat resep...', style: TextStyle(color: Colors.grey)),
+          Text(
+            'Memuat resep...',
+            style: TextStyle(color: Colors.grey),
+          ),
         ],
       ),
     );
@@ -217,7 +297,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHeader() {
     return Container(
-      height: 280,
+      height: 260,
       decoration: BoxDecoration(color: Colors.grey.shade200),
       child: Stack(
         children: [
@@ -247,7 +327,13 @@ class HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(8),
-              boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.3), spreadRadius: 1, blurRadius: 3)],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                ),
+              ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
@@ -268,7 +354,10 @@ class HomeScreenState extends State<HomeScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.black.withOpacity(0.3), Colors.black.withOpacity(0.7)],
+          colors: [
+            Colors.black.withOpacity(0.3),
+            Colors.black.withOpacity(0.7),
+          ],
         ),
       ),
     );
@@ -284,15 +373,26 @@ class HomeScreenState extends State<HomeScreen> {
         children: [
           const Text(
             'Rekomendasi Resep\nMasakan',
-            style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+            ),
             child: Text(
               '${recipes.length} Resep Tersedia',
-              style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -332,8 +432,12 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildFeaturedCards() {
-    final sarapanCount = recipes.where((r) => r.jenisWaktu.toLowerCase().contains('sarapan')).length;
-    final siangCount = recipes.where((r) => r.jenisWaktu.toLowerCase().contains('siang')).length;
+    final sarapanCount = recipes
+        .where((r) => r.jenisWaktu.toLowerCase().contains('sarapan'))
+        .length;
+    final siangCount = recipes
+        .where((r) => r.jenisWaktu.toLowerCase().contains('siang'))
+        .length;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -342,26 +446,36 @@ class HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: GestureDetector(
               onTap: () {
-                // Filter resep sarapan dan tampilkan yang pertama jika ada
-                final sarapanRecipes = recipes.where((r) => r.jenisWaktu.toLowerCase().contains('sarapan')).toList();
+                final sarapanRecipes = recipes
+                    .where((r) => r.jenisWaktu.toLowerCase().contains('sarapan'))
+                    .toList();
                 if (sarapanRecipes.isNotEmpty) {
                   _navigateToRecipeDetail(sarapanRecipes.first);
                 }
               },
-              child: _buildFeaturedCard('Resep\nSarapan', [Colors.orange.shade300, Colors.orange.shade600], sarapanCount),
+              child: _buildFeaturedCard(
+                'Resep\nSarapan',
+                [Colors.orange.shade300, Colors.orange.shade600],
+                sarapanCount,
+              ),
             ),
           ),
           const SizedBox(width: 15),
           Expanded(
             child: GestureDetector(
               onTap: () {
-                // Filter resep makan siang dan tampilkan yang pertama jika ada
-                final siangRecipes = recipes.where((r) => r.jenisWaktu.toLowerCase().contains('siang')).toList();
+                final siangRecipes = recipes
+                    .where((r) => r.jenisWaktu.toLowerCase().contains('siang'))
+                    .toList();
                 if (siangRecipes.isNotEmpty) {
                   _navigateToRecipeDetail(siangRecipes.first);
                 }
               },
-              child: _buildFeaturedCard('Resep\nMakan Siang', [Colors.amber.shade400, Colors.orange.shade600], siangCount),
+              child: _buildFeaturedCard(
+                'Resep\nMakan Siang',
+                [Colors.amber.shade400, Colors.orange.shade600],
+                siangCount,
+              ),
             ),
           ),
         ],
@@ -374,21 +488,45 @@ class HomeScreenState extends State<HomeScreen> {
       height: 100,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.3), spreadRadius: 1, blurRadius: 5, offset: const Offset(0, 3))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.3),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Stack(
           children: [
-            Container(decoration: BoxDecoration(gradient: LinearGradient(colors: colors))),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: colors),
+              ),
+            ),
             Positioned(
               bottom: 10,
               left: 10,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text('$count resep', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '$count resep',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -404,9 +542,58 @@ class HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Resep Terbaru', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
+          Text(
+            'Resep Terbaru',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade800,
+            ),
+          ),
           const SizedBox(height: 15),
-          ...recipes.take(5).map(_buildRecipeCard),
+          if (recipes.isEmpty)
+            _buildEmptyRecipeList()
+          else
+            ...recipes.take(5).map(_buildRecipeCard),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyRecipeList() {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          Icon(
+            Icons.restaurant_menu,
+            size: 64,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Belum ada resep',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Tambahkan resep pertama Anda!',
+            style: TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _navigateToAddRecipe,
+            icon: const Icon(Icons.add),
+            label: const Text('Tambah Resep'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+          ),
         ],
       ),
     );
@@ -414,58 +601,133 @@ class HomeScreenState extends State<HomeScreen> {
 
   Widget _buildRecipeCard(Recipe recipe) {
     return GestureDetector(
-      onTap: () => _navigateToRecipeDetail(recipe), // Tambahkan navigasi ke detail
+      onTap: () => _navigateToRecipeDetail(recipe),
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: Colors.grey.shade800,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.3), spreadRadius: 1, blurRadius: 5, offset: const Offset(0, 3))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
-              width: 50, height: 50,
-              decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.restaurant, color: Colors.white, size: 25),
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.restaurant,
+                color: Colors.white,
+                size: 25,
+              ),
             ),
             const SizedBox(width: 15),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(recipe.namaMasakan, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    recipe.namaMasakan,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   const SizedBox(height: 5),
-                  Text(recipe.deskripsi, style: const TextStyle(color: Colors.grey, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(
+                    recipe.deskripsi,
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.access_time, size: 12, color: Colors.orange),
+                      const Icon(
+                        Icons.access_time,
+                        size: 12,
+                        color: Colors.orange,
+                      ),
                       const SizedBox(width: 4),
-                      Text('${recipe.waktuMemasak} Menit', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      Text(
+                        '${recipe.waktuMemasak} Menit',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
                       const SizedBox(width: 15),
-                      const Icon(Icons.star, size: 12, color: Colors.orange),
+                      const Icon(
+                        Icons.star,
+                        size: 12,
+                        color: Colors.orange,
+                      ),
                       const SizedBox(width: 4),
-                      Text(recipe.levelKesulitan, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      Text(
+                        recipe.levelKesulitan,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 5),
                   Row(
                     children: [
                       Container(
-                        width: 20, height: 20,
-                        decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
-                        child: const Icon(Icons.person, size: 12, color: Colors.white),
+                        width: 20,
+                        height: 20,
+                        decoration: const BoxDecoration(
+                          color: Colors.orange,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          size: 12,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      // PERBAIKAN: Gunakan recipe.userName bukan recipe.userId
-                      Text('Chef ${recipe.userName}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      Text(
+                        'Chef ${recipe.userName}',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
                       const Spacer(),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(10)),
-                        child: Text(recipe.jenisWaktu, style: const TextStyle(color: Colors.white, fontSize: 10)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          recipe.jenisWaktu,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -483,7 +745,14 @@ class HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.3), spreadRadius: 1, blurRadius: 5, offset: const Offset(0, -2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.3),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
       child: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,

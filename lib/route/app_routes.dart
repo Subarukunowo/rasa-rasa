@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import '../screen/splashscreen.dart';
 import '../screen/beranda.dart';
-import '../bookmark.dart';
+import '../screen/bookmark.dart';
 
 class AppRoutes {
   static const String splash = '/';

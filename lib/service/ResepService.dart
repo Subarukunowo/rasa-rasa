@@ -1,4 +1,3 @@
-
 // lib/service/api_service.dart
 
 import 'dart:convert';
@@ -17,6 +16,7 @@ class ResepService extends BaseApiService {
     final data = BaseApiService.handleResponse(response);
 
     List<Recipe> recipes = [];
+
     for (var item in data) {
       try {
         debugPrint('✅ ITEM: ${item.runtimeType} | $item');
@@ -30,7 +30,46 @@ class ResepService extends BaseApiService {
         debugPrint('⚠️ Error parsing recipe: $e');
       }
     }
+
     return recipes;
+  }
+
+  // Read resep by ID
+  static Future<Recipe?> getRecipeById(String recipeId) async {
+    try {
+      debugPrint('🔍 Fetching recipe detail for ID: $recipeId');
+
+      final response = await http.get(
+        Uri.parse('$endpoint/read.php?id=$recipeId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+
+        if (decoded['success'] == true && decoded['data'] != null) {
+          final data = decoded['data'];
+          if (data is Map<String, dynamic>) {
+            return Recipe.fromJson(data);
+          } else if (data is List && data.isNotEmpty) {
+            return Recipe.fromJson(data.first);
+          }
+        } else if (decoded['data'] != null) {
+          final data = decoded['data'];
+          if (data is List && data.isNotEmpty) {
+            for (var item in data) {
+              if (item['id'].toString() == recipeId) {
+                return Recipe.fromJson(item);
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching recipe by ID: $e');
+    }
+
+    return null;
   }
 
   // Create resep
@@ -40,6 +79,7 @@ class ResepService extends BaseApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(data),
     );
+
     return BaseApiService.handleSingleResponse(response);
   }
 
@@ -50,6 +90,7 @@ class ResepService extends BaseApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({...data, 'id': id}),
     );
+
     return BaseApiService.handleSingleResponse(response);
   }
 
@@ -60,6 +101,25 @@ class ResepService extends BaseApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'id': id}),
     );
+
     return BaseApiService.handleSingleResponse(response);
+  }
+  static Future<bool> toggleFavorite(String recipeId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$endpoint/favorite/toggle.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'recipe_id': recipeId}),
+      );
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        return decoded['success'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error toggling favorite: $e');
+      return false;
+    }
   }
 }

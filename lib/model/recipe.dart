@@ -1,4 +1,3 @@
-// lib/model/recipe.dart
 class Recipe {
   final int id;
   final int userId;
@@ -11,7 +10,8 @@ class Recipe {
   final String levelKesulitan;
   final String jenisWaktu;
   final String? video;
-  final String userName; // Tambahkan property userName
+  final String gambar; // ✅ Tambahkan properti gambar
+  final String userName;
 
   const Recipe({
     required this.id,
@@ -25,7 +25,8 @@ class Recipe {
     required this.levelKesulitan,
     required this.jenisWaktu,
     this.video,
-    required this.userName, // Tambahkan ke constructor
+    required this.gambar, // ✅ Tambahkan ke constructor
+    required this.userName,
   });
 
   factory Recipe.fromJson(Map<String, dynamic> json) {
@@ -41,7 +42,8 @@ class Recipe {
       levelKesulitan: _parseString(json['level_kesulitan']),
       jenisWaktu: _parseString(json['jenis_waktu']),
       video: json['video'] as String?,
-      userName: _parseString(json['user_name'] ?? json['nama_user'] ?? 'Unknown'), // Sesuaikan dengan key dari API
+      gambar: _parseString(json['gambar']), // ✅ Ambil dari JSON
+      userName: _parseString(json['user_name'] ?? json['nama_user'] ?? 'Unknown'),
     );
   }
 
@@ -70,6 +72,7 @@ class Recipe {
       'level_kesulitan': levelKesulitan,
       'jenis_waktu': jenisWaktu,
       'video': video,
+      'gambar': gambar, // ✅ Tambahkan ke JSON
       'user_name': userName,
     };
   }

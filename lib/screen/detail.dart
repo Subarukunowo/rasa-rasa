@@ -1,35 +1,7 @@
+// lib/detail.dart
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'RASARASA',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFE8B86D),
-          brightness: Brightness.light,
-        ),
-        fontFamily: 'SF Pro Display',
-      ),
-      // Fixed: Provide default values for required parameters
-      home: const RecipeDetailScreen(
-        recipeId: "1", // Default recipe ID for testing
-        previousScreen: "beranda", // Default previous screen
-      ),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
+import '../model/recipe.dart';
+import '../service/ResepService.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final String recipeId;
@@ -37,8 +9,8 @@ class RecipeDetailScreen extends StatefulWidget {
 
   const RecipeDetailScreen({
     Key? key,
-    required this.recipeId, // This is required
-    this.previousScreen
+    required this.recipeId,
+    this.previousScreen,
   }) : super(key: key);
 
   @override
@@ -48,7 +20,7 @@ class RecipeDetailScreen extends StatefulWidget {
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _isLoading = true;
   bool _isFavorited = false;
-  Map<String, dynamic>? _recipeData;
+  Recipe? _recipe;
   String _selectedTab = 'Bahan-bahan';
 
   @override
@@ -63,92 +35,52 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         _isLoading = true;
       });
 
-      final response = await http.get(
-        Uri.parse('http://192.168.1.5/rasa-rasa/api/resep/read.php?id=${widget.recipeId}'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      );
+      final recipe = await ResepService.getRecipeById(widget.recipeId);
 
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        if (responseData['success'] == true) {
-          setState(() {
-            _recipeData = responseData['data'];
-            _isFavorited = _recipeData?['is_favorited'] ?? false;
-            _isLoading = false;
-          });
-        } else {
-          throw Exception(responseData['message'] ?? 'Failed to load recipe');
-        }
+      if (recipe != null) {
+        setState(() {
+          _recipe = recipe;
+          _isLoading = false;
+        });
+        debugPrint('✅ Recipe loaded: ${recipe.namaMasakan}');
       } else {
-        throw Exception('Failed to load recipe');
+        throw Exception('Recipe not found');
       }
     } catch (e) {
-      print('API Error: $e');
-      // Fallback to mock data
+      debugPrint('❌ Error loading recipe: $e');
       setState(() {
-        _recipeData = {
-          'id': widget.recipeId,
-          'name': 'Telur Benediktus',
-          'description': 'Kuasat hidangan sarapan raja',
-          'image': 'https://images.unsplash.com/photo-1551218808-94e220e084d2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-          'rating': 4.5,
-          'review_count': 2564,
-          'cooking_count': 8300,
-          'portions': 2,
-          'prep_time': 25,
-          'cook_time': 20,
-          'full_description': 'Tumpukan klasik muffin Inggris panggang dengan tambahan bacon Kanada, telur rebus, dan saus hollandaise lembut yang biasanya Anda simpan untuk rencana makan siang di akhir pekan.',
-          'ingredients': [
-            '3 - muffin Inggris, dibuka',
-            '6 - Telur, ditambah 3 kuning telur, dibagi',
-            '2 - Sendok makan air jeruk lemon',
-            '1 - Sendok teh mustard Dijon',
-            '1/2 - Cangkir mentega tawar, leleh'
-          ],
-          'instructions': [
-            {
-              'step': 1,
-              'title': 'Buat mentega yang sudah diternilkan',
-              'description': 'Panaskan panci kecil bertele air setinggi 1 inci di atas api sedang hingga mendingkap. Letakkan mangkuk besar sebatang di atas air bergolak sehingga mangkuk dan bihirn kecang sebanyak hingga mentega menghela dan suatu yang dicarikan mengadam ke dasar mangkuk, 10 menit.',
-            },
-            {
-              'step': 2,
-              'title': 'Buat selanjutnya',
-              'description': 'Isi mangkuk besar dengan air es. Letakkan mangkuk kecil di dalam air es untuk menahan panas berlebih.'
-            }
-          ],
-          'is_favorited': false,
-        };
-        _isFavorited = false;
         _isLoading = false;
       });
+
+      // Show error to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat detail resep: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _toggleFavorite() async {
     try {
-      final response = await http.post(
-        Uri.parse('http://192.168.1.5/rasa-rasa/api/resep/toggle-favorite.php'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'recipe_id': widget.recipeId,
-        }),
-      );
+      final success = await ResepService.toggleFavorite(widget.recipeId);
+      if (success) {
+        setState(() {
+          _isFavorited = !_isFavorited;
+        });
 
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        if (responseData['success'] == true) {
-          setState(() {
-            _isFavorited = !_isFavorited;
-          });
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isFavorited ? 'Ditambahkan ke favorit' : 'Dihapus dari favorit'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
-      print('Error toggling favorite: $e');
+      debugPrint('Error toggling favorite: $e');
       // Still toggle locally for demo
       setState(() {
         _isFavorited = !_isFavorited;
@@ -167,8 +99,38 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       case 'profile':
         return 'Profil';
       default:
-        return 'Pencarian'; // Default title
+        return 'Beranda';
     }
+  }
+
+  // Get ingredients list from bahanUtama
+  List<String> _getIngredientsList() {
+    if (_recipe?.bahanUtama == null) return [];
+    return _recipe!.bahanUtama.split(',').map((e) => e.trim()).toList();
+  }
+
+  // Get dummy instructions based on recipe
+  List<Map<String, dynamic>> _getInstructions() {
+    if (_recipe == null) return [];
+
+    // Generate dummy instructions based on recipe
+    return [
+      {
+        'step': 1,
+        'title': 'Persiapan Bahan',
+        'description': 'Siapkan semua bahan yang diperlukan: ${_recipe!.bahanUtama}. Pastikan semua bahan dalam kondisi segar dan berkualitas baik.',
+      },
+      {
+        'step': 2,
+        'title': 'Mulai Memasak',
+        'description': 'Mulai proses memasak ${_recipe!.namaMasakan} dengan tingkat kesulitan ${_recipe!.levelKesulitan.toLowerCase()}. Perhatikan waktu memasak sekitar ${_recipe!.waktuMemasak} menit.',
+      },
+      {
+        'step': 3,
+        'title': 'Finishing',
+        'description': 'Selesaikan proses memasak dan lakukan penyajian. ${_recipe!.deskripsi}',
+      },
+    ];
   }
 
   @override
@@ -179,6 +141,25 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         body: Center(
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE8B86D)),
+          ),
+        ),
+      );
+    }
+
+    if (_recipe == null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: Text(_getBackButtonTitle()),
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text('Resep tidak ditemukan'),
+            ],
           ),
         ),
       );
@@ -219,9 +200,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             centerTitle: true,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   image: DecorationImage(
-                    image: NetworkImage(_recipeData?['image'] ?? ''),
+                    image: NetworkImage('https://images.unsplash.com/photo-1551218808-94e220e084d2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -254,23 +235,23 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        // Title and Cooked Count - FIXED OVERFLOW
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Text(
-                                _recipeData?['name'] ?? '',
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFE8B86D),
-                                ),
+                            Text(
+                              _recipe!.namaMasakan,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFE8B86D),
                               ),
                             ),
+                            const SizedBox(height: 8),
                             Row(
                               children: [
                                 Text(
-                                  '${(_recipeData?['cooking_count'] ?? 0) / 1000}K',
+                                  '${_recipe!.userId}K',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey,
@@ -290,10 +271,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           ],
                         ),
 
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 16),
 
                         Text(
-                          _recipeData?['description'] ?? '',
+                          _recipe!.deskripsi,
                           style: const TextStyle(
                             fontSize: 16,
                             color: Colors.black87,
@@ -302,27 +283,64 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
                         const SizedBox(height: 16),
 
-                        // Rating
-                        Row(
+                        // Rating & Chef Info - FIXED OVERFLOW
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Rating stars
                             Row(
-                              children: List.generate(5, (index) {
-                                return Icon(
-                                  index < (_recipeData?['rating'] ?? 0).floor()
-                                      ? Icons.star
-                                      : Icons.star_border,
-                                  color: const Color(0xFFE8B86D),
-                                  size: 20,
-                                );
-                              }),
+                              children: [
+                                Row(
+                                  children: List.generate(5, (index) {
+                                    return Icon(
+                                      index < 4 ? Icons.star : Icons.star_border,
+                                      color: const Color(0xFFE8B86D),
+                                      size: 20,
+                                    );
+                                  }),
+                                ),
+                                const SizedBox(width: 8),
+                                const Flexible(
+                                  child: Text(
+                                    '(2564 Review)',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '(${_recipeData?['review_count'] ?? 0} Review)',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
+                            const SizedBox(height: 8),
+                            // Chef info
+                            Row(
+                              children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFE8B86D),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.person,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    'Chef ${_recipe!.userName}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -360,48 +378,55 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ),
                   ),
 
-                  // Time Info Cards
+                  // Time Info Cards - RESPONSIVE
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _buildTimeCard(
-                            'Porsi',
-                            'Persiapan',
-                            '${_recipeData?['portions'] ?? 0}\npp',
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildTimeCard(
-                            'Waktu',
-                            'Persiapan',
-                            '${_recipeData?['prep_time'] ?? 0}\nmin',
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildTimeCard(
-                            'Waktunya',
-                            'Memasak',
-                            '${_recipeData?['cook_time'] ?? 0}\nmin',
-                          ),
-                        ),
-                      ],
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Responsive layout based on screen width
+                        if (constraints.maxWidth < 350) {
+                          // Small screen: Stack vertically
+                          return Column(
+                            children: [
+                              _buildTimeCard('Porsi', 'Persiapan', '2\npp'),
+                              const SizedBox(height: 12),
+                              _buildTimeCard('Waktu', 'Persiapan', '${(_recipe!.waktuMemasak * 0.3).round()}\nmin'),
+                              const SizedBox(height: 12),
+                              _buildTimeCard('Waktunya', 'Memasak', '${_recipe!.waktuMemasak}\nmin'),
+                            ],
+                          );
+                        } else {
+                          // Normal screen: Horizontal row
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: _buildTimeCard('Porsi', 'Persiapan', '2\npp'),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildTimeCard('Waktu', 'Persiapan', '${(_recipe!.waktuMemasak * 0.3).round()}\nmin'),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildTimeCard('Waktunya', 'Memasak', '${_recipe!.waktuMemasak}\nmin'),
+                              ),
+                            ],
+                          );
+                        }
+                      },
                     ),
                   ),
 
                   const SizedBox(height: 32),
 
-                  // Description
+                  // Recipe Details - FIXED OVERFLOW WITH WRAP
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Deskripsi',
+                          'Detail Resep',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -409,13 +434,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Text(
-                          _recipeData?['full_description'] ?? '',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.black87,
-                            height: 1.5,
-                          ),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildDetailChip('Kategori: ${_recipe!.kategoriId}'),
+                            _buildDetailChip('Level: ${_recipe!.levelKesulitan}'),
+                            _buildDetailChip(_recipe!.jenisWaktu),
+                          ],
                         ),
                       ],
                     ),
@@ -423,15 +449,22 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
                   const SizedBox(height: 32),
 
-                  // Tab Section
+                  // Tab Section - RESPONSIVE
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Row(
-                      children: [
-                        _buildTabButton('Bahan-bahan'),
-                        const SizedBox(width: 24),
-                        _buildTabButton('Langkah-Langkah'),
-                      ],
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _buildTabButton('Bahan-bahan'),
+                              const SizedBox(width: 24),
+                              _buildTabButton('Langkah-Langkah'),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ),
 
@@ -521,6 +554,29 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     );
   }
 
+  Widget _buildDetailChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8B86D).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFE8B86D).withOpacity(0.3),
+        ),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          color: Color(0xFFE8B86D),
+          fontWeight: FontWeight.w500,
+        ),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+      ),
+    );
+  }
+
   Widget _buildTabButton(String title) {
     final isSelected = _selectedTab == title;
     return GestureDetector(
@@ -554,7 +610,22 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   }
 
   Widget _buildIngredientsContent() {
-    final ingredients = _recipeData?['ingredients'] as List<dynamic>? ?? [];
+    final ingredients = _getIngredientsList();
+
+    if (ingredients.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        child: const Center(
+          child: Text(
+            'Bahan-bahan tidak tersedia',
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      );
+    }
 
     return Column(
       children: ingredients.map<Widget>((ingredient) {
@@ -579,7 +650,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  ingredient.toString(),
+                  ingredient,
                   style: const TextStyle(
                     fontSize: 14,
                     color: Colors.black87,
@@ -594,7 +665,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   }
 
   Widget _buildInstructionsContent() {
-    final instructions = _recipeData?['instructions'] as List<dynamic>? ?? [];
+    final instructions = _getInstructions();
 
     return Column(
       children: instructions.map<Widget>((instruction) {
