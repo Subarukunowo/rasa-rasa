@@ -1,15 +1,17 @@
 // lib/service/TambahResep.dart
-
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
-import 'LangkahResepervice.dart';
-import 'ResepService.dart';
-
+import '../service/LangkahResepervice.dart';
+import '../service/ResepService.dart';
+import 'dart:io';
+import 'dart:convert';
 class TambahResep extends StatefulWidget {
   const TambahResep({Key? key}) : super(key: key);
 
   @override
   State<TambahResep> createState() => _AddRecipeScreenState();
 }
+
 
 class _AddRecipeScreenState extends State<TambahResep> {
   final _formKey = GlobalKey<FormState>();
@@ -32,6 +34,7 @@ class _AddRecipeScreenState extends State<TambahResep> {
     LangkahResepInput(urutan: 1),
   ];
 
+  File? _selectedImage;
   bool _isLoading = false;
 
   final List<String> _difficulties = ['Mudah', 'Sedang', 'Sulit'];
@@ -65,7 +68,6 @@ class _AddRecipeScreenState extends State<TambahResep> {
       _langkahList.add(LangkahResepInput(urutan: _langkahList.length + 1));
     });
 
-    // Scroll ke bawah untuk menampilkan langkah baru
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
@@ -81,7 +83,6 @@ class _AddRecipeScreenState extends State<TambahResep> {
         _langkahList[index].dispose();
         _langkahList.removeAt(index);
 
-        // Update urutan setelah menghapus
         for (int i = 0; i < _langkahList.length; i++) {
           _langkahList[i].urutan = i + 1;
         }
@@ -97,19 +98,26 @@ class _AddRecipeScreenState extends State<TambahResep> {
       final item = _langkahList.removeAt(oldIndex);
       _langkahList.insert(newIndex, item);
 
-      // Update urutan setelah reorder
       for (int i = 0; i < _langkahList.length; i++) {
         _langkahList[i].urutan = i + 1;
       }
     });
   }
 
-  Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+  Future<void> _pickImageFromGallery() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
-    // Validasi langkah-langkah
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
     for (int i = 0; i < _langkahList.length; i++) {
       final langkah = _langkahList[i];
       final error = LangkahResepService.validateLangkahResep(
@@ -128,14 +136,29 @@ class _AddRecipeScreenState extends State<TambahResep> {
       }
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (_selectedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gambar masakan wajib dipilih'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
 
     try {
-      // 1. Buat resep terlebih dahulu
+      final bytes = await _selectedImage!.readAsBytes();
+      final base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
+
+      final langkahData = _langkahList.map((langkah) => {
+        'judul': langkah.judulController.text.trim(),
+        'deskripsi': langkah.deskripsiController.text.trim(),
+      }).toList();
+
       final resepData = {
-        'user_id': 1, // Sesuaikan dengan user yang login
+        'user_id': 1,
         'nama_masakan': _namaController.text.trim(),
         'kategori_id': _selectedKategori,
         'waktu_memasak': int.parse(_waktuController.text),
@@ -144,28 +167,13 @@ class _AddRecipeScreenState extends State<TambahResep> {
         'level_kesulitan': _selectedDifficulty,
         'jenis_waktu': _selectedTimeType,
         'video': _videoController.text.trim().isEmpty ? null : _videoController.text.trim(),
+        'gambar': base64Image,
+        'langkah': langkahData,
       };
 
       final resepResponse = await ResepService.createResep(resepData);
 
       if (resepResponse['success'] == true) {
-        final resepId = resepResponse['data']['id'];
-
-        // 2. Buat langkah-langkah resep
-        List<Map<String, String>> langkahData = [];
-        for (var langkah in _langkahList) {
-          langkahData.add({
-            'judul': langkah.judulController.text.trim(),
-            'deskripsi': langkah.deskripsiController.text.trim(),
-          });
-        }
-
-        await LangkahResepService.createMultipleLangkahResep(
-          int.parse(resepId.toString()),
-          langkahData,
-        );
-
-        // 3. Tampilkan pesan berhasil
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -173,8 +181,7 @@ class _AddRecipeScreenState extends State<TambahResep> {
               backgroundColor: Colors.green,
             ),
           );
-
-          Navigator.pop(context, true); // Return true untuk refresh list
+          Navigator.pop(context, true);
         }
       } else {
         throw Exception(resepResponse['message'] ?? 'Gagal membuat resep');
@@ -189,14 +196,9 @@ class _AddRecipeScreenState extends State<TambahResep> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

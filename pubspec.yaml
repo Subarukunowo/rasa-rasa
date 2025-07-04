@@ -97,6 +97,8 @@ dependencies:
 
   # Flutter secure storage for tokens
   flutter_secure_storage: ^9.0.0
+  # Image picker for selecting images from gallery or camera
+  image_picker: ^0.8.6
 
 dev_dependencies:
   flutter_test:

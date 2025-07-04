@@ -45,18 +45,17 @@ class UserService extends BaseApiService {
   }
 
   // Login
-  static Future<Map<String, dynamic>> login(String email, String password) async {
-    final response = await http.post(
-      Uri.parse('$endpoint/login.php'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-      }),
-    );
-    return BaseApiService.handleSingleResponse(response);
-  }
-
+static Future<Map<String, dynamic>> login(String username, String password) async {
+  final response = await http.post(
+    Uri.parse('$endpoint/login.php'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'username': username,
+      'password': password,
+    }),
+  );
+  return BaseApiService.handleSingleResponse(response);
+}
   // Test login
   static Future<Map<String, dynamic>> testLogin() async {
     final response = await http.get(Uri.parse('$endpoint/test_login.php'));
