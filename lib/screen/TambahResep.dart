@@ -5,13 +5,14 @@ import '../service/LangkahResepervice.dart';
 import '../service/ResepService.dart';
 import 'dart:io';
 import 'dart:convert';
+import '../screen/auth/ResepSuccessScreen.dart';
+
 class TambahResep extends StatefulWidget {
   const TambahResep({Key? key}) : super(key: key);
 
   @override
   State<TambahResep> createState() => _AddRecipeScreenState();
 }
-
 
 class _AddRecipeScreenState extends State<TambahResep> {
   final _formKey = GlobalKey<FormState>();
@@ -28,6 +29,7 @@ class _AddRecipeScreenState extends State<TambahResep> {
   int _selectedKategori = 1;
   String _selectedDifficulty = 'Mudah';
   String _selectedTimeType = 'Menit';
+  String _selectedJenisWaktu = 'Sarapan';
 
   // List untuk langkah-langkah
   List<LangkahResepInput> _langkahList = [
@@ -39,6 +41,7 @@ class _AddRecipeScreenState extends State<TambahResep> {
 
   final List<String> _difficulties = ['Mudah', 'Sedang', 'Sulit'];
   final List<String> _timeTypes = ['Menit', 'Jam'];
+  final List<String> _jenisWaktu = ['Sarapan', 'Makan Siang', 'Makan Malam'];
   final List<Map<String, dynamic>> _categories = [
     {'id': 1, 'name': 'Makanan Utama'},
     {'id': 2, 'name': 'Makanan Ringan'},
@@ -115,90 +118,116 @@ class _AddRecipeScreenState extends State<TambahResep> {
     }
   }
 
-  Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
+ Future<void> _submitForm() async {
+  if (!_formKey.currentState!.validate()) return;
 
-    for (int i = 0; i < _langkahList.length; i++) {
-      final langkah = _langkahList[i];
-      final error = LangkahResepService.validateLangkahResep(
-        judul: langkah.judulController.text,
-        deskripsi: langkah.deskripsiController.text,
-      );
+  for (int i = 0; i < _langkahList.length; i++) {
+    final langkah = _langkahList[i];
+    final error = LangkahResepService.validateLangkahResep(
+      judul: langkah.judulController.text,
+      deskripsi: langkah.deskripsiController.text,
+    );
 
-      if (error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Langkah ${i + 1}: $error'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-    }
-
-    if (_selectedImage == null) {
+    if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Gambar masakan wajib dipilih'),
+        SnackBar(
+          content: Text('Langkah ${i + 1}: $error'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final bytes = await _selectedImage!.readAsBytes();
-      final base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
-
-      final langkahData = _langkahList.map((langkah) => {
-        'judul': langkah.judulController.text.trim(),
-        'deskripsi': langkah.deskripsiController.text.trim(),
-      }).toList();
-
-      final resepData = {
-        'user_id': 1,
-        'nama_masakan': _namaController.text.trim(),
-        'kategori_id': _selectedKategori,
-        'waktu_memasak': int.parse(_waktuController.text),
-        'bahan_utama': _bahanUtamaController.text.trim(),
-        'deskripsi': _deskripsiController.text.trim(),
-        'level_kesulitan': _selectedDifficulty,
-        'jenis_waktu': _selectedTimeType,
-        'video': _videoController.text.trim().isEmpty ? null : _videoController.text.trim(),
-        'gambar': base64Image,
-        'langkah': langkahData,
-      };
-
-      final resepResponse = await ResepService.createResep(resepData);
-
-      if (resepResponse['success'] == true) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Resep berhasil ditambahkan!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pop(context, true);
-        }
-      } else {
-        throw Exception(resepResponse['message'] ?? 'Gagal membuat resep');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
+
+  if (_selectedImage == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Gambar masakan wajib dipilih'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  setState(() => _isLoading = true);
+
+  try {
+    final bytes = await _selectedImage!.readAsBytes();
+    final base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
+
+    int waktuMasak = int.tryParse(_waktuController.text) ?? -1;
+    if (waktuMasak <= 0) throw Exception('Waktu memasak tidak valid');
+
+    // ⛔️ Tidak diubah
+    final langkahData = _langkahList.map((langkah) => {
+      'judul': langkah.judulController.text.trim(),
+      'deskripsi': langkah.deskripsiController.text.trim(),
+    }).toList();
+
+    final resepData = {
+      'user_id': 1,
+      'nama_masakan': _namaController.text.trim(),
+      'kategori_id': _selectedKategori,
+      'waktu_memasak': waktuMasak,
+      'bahan_utama': _bahanUtamaController.text.trim(),
+      'deskripsi': _deskripsiController.text.trim(),
+      'level_kesulitan': _selectedDifficulty,
+      'jenis_waktu': _selectedJenisWaktu,
+      'satuan_waktu': _selectedTimeType,
+      'video': _videoController.text.trim().isEmpty
+          ? null
+          : _videoController.text.trim(),
+      'gambar': base64Image,
+      'langkah': langkahData,
+    };
+
+    final resepResponse = await ResepService.createResep(resepData);
+
+    bool isSuccess = resepResponse is Map &&
+        (resepResponse['success'] == true ||
+         resepResponse['success'] == 'true' ||
+         (resepResponse['message'] is String &&
+          RegExp(r'berhasil', caseSensitive: false).hasMatch(resepResponse['message'])));
+
+    if (!isSuccess) {
+      throw Exception(
+        resepResponse is Map
+            ? (resepResponse['message'] ?? 'Respon tidak valid')
+            : 'Gagal membuat resep',
+      );
+    }
+
+    // ✅ Navigasi ke halaman sukses
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResepSuccessScreen(
+            namaResep: _namaController.text.trim(),
+            levelKesulitan: _selectedDifficulty,
+            gambarPath: _selectedImage!.path,
+          ),
+        ),
+      );
+    }
+  } catch (e, stackTrace) {
+    debugPrint('❌ Error saat submit: $e');
+    debugPrintStack(stackTrace: stackTrace);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
+  }
+}
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -242,6 +271,28 @@ class _AddRecipeScreenState extends State<TambahResep> {
             children: [
               // ===== SECTION: INFO RESEP =====
               _buildSectionHeader('Informasi Resep', Icons.restaurant_menu),
+              const SizedBox(height: 16),
+
+              // ===== NEW: Jenis Waktu =====
+              _buildDropdown<String>(
+                value: _selectedJenisWaktu,
+                label: 'Jenis Waktu',
+                icon: Icons.schedule_outlined,
+                items: _jenisWaktu.map((jenis) => DropdownMenuItem<String>(
+                  value: jenis,
+                  child: Text(jenis),
+                )).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedJenisWaktu = value!;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // ===== NEW: IMAGE PICKER SECTION =====
+              _buildImagePicker(),
               const SizedBox(height: 16),
 
               _buildTextFormField(
@@ -325,7 +376,7 @@ class _AddRecipeScreenState extends State<TambahResep> {
                     flex: 2, // Less space for dropdown
                     child: _buildDropdown<String>(
                       value: _selectedTimeType,
-                      label: 'Satuan',
+                      label: 'Satuan Waktu',
                       icon: Icons.schedule,
                       items: _timeTypes.map((type) => DropdownMenuItem<String>(
                         value: type,
@@ -463,6 +514,107 @@ class _AddRecipeScreenState extends State<TambahResep> {
           ),
         ),
       ),
+    );
+  }
+
+  // ===== NEW: IMAGE PICKER WIDGET =====
+  Widget _buildImagePicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.image, color: Colors.orange, size: 20),
+            const SizedBox(width: 8),
+            const Text(
+              'Gambar Masakan',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+            const Text(
+              ' *',
+              style: TextStyle(color: Colors.red),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: _pickImageFromGallery,
+          child: Container(
+            width: double.infinity,
+            height: 200,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: _selectedImage == null ? Colors.grey.shade300 : Colors.orange,
+                width: 2,
+                style: BorderStyle.solid,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.grey.shade50,
+            ),
+            child: _selectedImage == null
+                ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.camera_alt,
+                  size: 48,
+                  color: Colors.grey.shade400,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Pilih Gambar Masakan',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Ketuk untuk memilih dari galeri',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
+            )
+                : Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.file(
+                    _selectedImage!,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(
+                      Icons.edit,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

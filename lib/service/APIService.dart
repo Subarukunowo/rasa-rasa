@@ -8,7 +8,7 @@ import 'package:rasarasa_app/model/recipe.dart';
 
 // ===== BASE API SERVICE =====
 class BaseApiService {
-  static const String baseUrl = 'http://192.168.0.104/rasa-rasa/api';
+  static const String baseUrl = 'http://172.16.100.47/rasa-rasa/api';
 
   static List<dynamic> handleResponse(http.Response response) {
     if (response.statusCode == 200) {
@@ -20,24 +20,16 @@ class BaseApiService {
   }
 
  static Map<String, dynamic> handleSingleResponse(http.Response response) {
-  print('📦 Status code: ${response.statusCode}');
-  print('📥 Response body: ${response.body}');
+  final statusCode = response.statusCode;
 
-  if (response.statusCode == 200) {
+  if (statusCode == 200 || statusCode == 201) {
     try {
-      final decoded = jsonDecode(response.body);
-      if (decoded is Map<String, dynamic>) {
-        return decoded;
-      } else {
-        print('⚠️ Response bukan Map: $decoded');
-        return {};
-      }
+      return jsonDecode(response.body);
     } catch (e) {
-      print('❌ JSON decode error: $e');
-      return {};
+      throw Exception('Response tidak dapat diparsing');
     }
   } else {
-    throw Exception('Failed to load data: ${response.statusCode}');
+    throw Exception('Failed to load data : $statusCode');
   }
 }
 }
