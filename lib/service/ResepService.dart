@@ -82,6 +82,30 @@ class ResepService extends BaseApiService {
 
     return BaseApiService.handleSingleResponse(response);
   }
+  // Get resep by user_id
+static Future<List<Recipe>> getResepByUserId(String userId) async {
+  try {
+    final response = await http.get(
+      Uri.parse('$endpoint/read_user.php?user_id=$userId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+
+      if (decoded['success'] == true && decoded['data'] != null) {
+        List data = decoded['data'];
+        return data.map((item) => Recipe.fromJson(item)).toList();
+      }
+    } else {
+      debugPrint('❌ Failed to load user recipes: ${response.body}');
+    }
+  } catch (e) {
+    debugPrint('❌ Error fetching user recipes: $e');
+  }
+
+  return [];
+}
 
   // Update resep
   static Future<Map<String, dynamic>> updateResep(int id, Map<String, dynamic> data) async {

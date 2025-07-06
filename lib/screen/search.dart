@@ -7,7 +7,7 @@ import 'SearchResultScreen.dart';
 
 // Service untuk API
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1/rasa-rasa/api/resep/read.php';
+  static const String baseUrl = 'http://192.168.1.5/rasa-rasa/api/resep/read.php';
 
   static Future<List<Recipe>> getRecipes() async {
     try {

@@ -10,7 +10,8 @@ class Recipe {
   final String levelKesulitan;
   final String jenisWaktu;
   final String? video;
-  final String gambar; // ✅ Tambahkan properti gambar
+  final String gambar;      // nama file gambar (ex: "ayam.jpg")
+  final String? gambarUrl;  // URL gambar lengkap (ex: "http://.../ayam.jpg")
   final String userName;
 
   const Recipe({
@@ -25,7 +26,8 @@ class Recipe {
     required this.levelKesulitan,
     required this.jenisWaktu,
     this.video,
-    required this.gambar, // ✅ Tambahkan ke constructor
+    required this.gambar,
+    this.gambarUrl,
     required this.userName,
   });
 
@@ -41,8 +43,9 @@ class Recipe {
       createdAt: _parseString(json['created_at']),
       levelKesulitan: _parseString(json['level_kesulitan']),
       jenisWaktu: _parseString(json['jenis_waktu']),
-      video: json['video'] as String?,
-      gambar: _parseString(json['gambar']), // ✅ Ambil dari JSON
+      video: json['video']?.toString(),
+      gambar: _parseString(json['gambar']),
+      gambarUrl: json['gambar_url']?.toString(),
       userName: _parseString(json['user_name'] ?? json['nama_user'] ?? 'Unknown'),
     );
   }
@@ -55,8 +58,7 @@ class Recipe {
   }
 
   static String _parseString(dynamic value) {
-    if (value == null) return '';
-    return value.toString();
+    return value?.toString() ?? '';
   }
 
   Map<String, dynamic> toJson() {
@@ -72,7 +74,8 @@ class Recipe {
       'level_kesulitan': levelKesulitan,
       'jenis_waktu': jenisWaktu,
       'video': video,
-      'gambar': gambar, // ✅ Tambahkan ke JSON
+      'gambar': gambar,
+      'gambar_url': gambarUrl,
       'user_name': userName,
     };
   }

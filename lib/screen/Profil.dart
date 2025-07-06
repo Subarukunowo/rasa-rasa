@@ -10,6 +10,7 @@ import 'search.dart';
 // Import your API service here
 import '../service/UserService.dart'; // Adjust the import path according to your actual project structure
 import '../service/ApiService.dart'; // Add this import if BaseApiService is defined in this file
+import '../model/recipe.dart';
 
 // ========================================
 // User Session Management
@@ -1333,13 +1334,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
- Future<void> _fetchUserFoodPhotos() async {
+ List<Recipe> _userRecipes = [];
+
+Future<void> _fetchUserFoodPhotos() async {
   try {
     final userId = UserSession.instance.currentUser?['id'];
 
     if (userId == null) {
       debugPrint('⚠️ User belum login.');
-      _foodPhotos = [];
+      setState(() {
+        _userRecipes = [];
+        _foodPhotos = [];
+      });
       return;
     }
 
@@ -1350,19 +1356,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final result = jsonDecode(response.body);
     print('📥 user resep response: $result');
 
-    if (result['success'] == true && result['data'] is List) {
-      _foodPhotos = List<Map<String, dynamic>>.from(result['data'].map((item) => {
-        'image_url': '${BaseApiService.baseUrl}/images/${item['gambar']}',
-        'recipe_name': item['namaMasakan'],
-      }));
-    } else {
-      _foodPhotos = [];
-    }
+    setState(() {
+      if (result['success'] == true && result['data'] is List) {
+        _userRecipes = List<Recipe>.from(
+          result['data'].map((item) => Recipe.fromJson(item)),
+        );
+
+        // Ambil hanya resep yang memiliki foto dan ubah menjadi format _foodPhotos
+      _foodPhotos = _userRecipes
+    .where((recipe) => recipe.gambarUrl != null && recipe.gambarUrl!.isNotEmpty)
+    .map((recipe) => {
+          'image_url': recipe.gambarUrl!, // HARUS pakai ini
+          'title': recipe.namaMasakan,
+        })
+    .toList();
+
+      } else {
+        _userRecipes = [];
+        _foodPhotos = [];
+      }
+    });
   } catch (e) {
-    debugPrint('❌ Error fetching user food photos: $e');
-    _foodPhotos = [];
+    debugPrint('❌ Error fetching user recipes: $e');
+    setState(() {
+      _userRecipes = [];
+      _foodPhotos = [];
+    });
   }
 }
+
+
   Future<void> _fetchFavoriteRecipes() async {
     try {
       // Simulate API call
@@ -1482,6 +1505,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 24),
                 _buildFavoriteRecipes(),
                 const SizedBox(height: 100),
+                _buildUserRecipesSection(),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -1853,6 +1878,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+Widget _buildUserRecipesSection() {
+  if (_userRecipes.isEmpty) {
+    return const Padding(
+      padding: EdgeInsets.all(16.0),
+      child: Text("Kamu belum memiliki resep."),
+    );
+  }
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Text(
+          "Resep Saya",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      ),
+      ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: _userRecipes.length,
+        itemBuilder: (context, index) {
+          final recipe = _userRecipes[index];
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: ListTile(
+              leading: Image.network(recipe.gambar, width: 50, height: 50, fit: BoxFit.cover),
+              title: Text(recipe.namaMasakan),
+              subtitle: Text('${recipe.levelKesulitan} • ${recipe.waktuMemasak} menit'),
+              onTap: () {
+                // Boleh navigasi ke detail resep di sini
+              },
+            ),
+          );
+        },
+      ),
+    ],
+  );
+}
 
   Widget _buildFavoriteFoods() {
     return Container(

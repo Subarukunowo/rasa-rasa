@@ -8,7 +8,7 @@ import 'package:rasarasa_app/model/recipe.dart';
 
 // ===== BASE API SERVICE =====
 class BaseApiService {
-  static const String baseUrl = 'http://172.16.100.47/rasa-rasa/api';
+  static const String baseUrl = 'http://192.168.1.5/rasa-rasa/api';
 
   static List<dynamic> handleResponse(http.Response response) {
     if (response.statusCode == 200) {
