@@ -25,6 +25,7 @@ class Recipe {
     required this.createdAt,
     required this.levelKesulitan,
     required this.jenisWaktu,
+    
     this.video,
     required this.gambar,
     this.gambarUrl,

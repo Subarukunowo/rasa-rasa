@@ -11,6 +11,8 @@ import 'search.dart';
 import '../service/UserService.dart'; // Adjust the import path according to your actual project structure
 import '../service/ApiService.dart'; // Add this import if BaseApiService is defined in this file
 import '../model/recipe.dart';
+import '../service/ResepService.dart'; // Add this import to use ResepService
+import 'editrecipescreen.dart'; // Import EditRecipeScreen if it exists in your project
 
 // ========================================
 // User Session Management
@@ -1905,11 +1907,86 @@ Widget _buildUserRecipesSection() {
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: ListTile(
-              leading: Image.network(recipe.gambar, width: 50, height: 50, fit: BoxFit.cover),
+              contentPadding: const EdgeInsets.all(12),
+              leading: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  recipe.gambar,
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.image),
+                ),
+              ),
               title: Text(recipe.namaMasakan),
-              subtitle: Text('${recipe.levelKesulitan} • ${recipe.waktuMemasak} menit'),
+              subtitle: Text(
+                  '${recipe.levelKesulitan} • ${recipe.waktuMemasak} menit'),
+              trailing: PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert),
+                onSelected: (value) async {
+                  if (value == 'edit') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EditRecipeScreen(recipe: recipe),
+                      ),
+                    );
+                  } else if (value == 'delete') {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Hapus Resep'),
+                        content:
+                            const Text('Yakin ingin menghapus resep ini?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Batal'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text(
+                              'Hapus',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true) {
+                      final result =
+                          await ResepService.deleteResep(recipe.id);
+                      if (result['success'] == true) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Resep berhasil dihapus')),
+                        );
+                        _fetchUserFoodPhotos(); // refresh data
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(
+                                  result['message'] ?? 'Gagal menghapus resep')),
+                        );
+                      }
+                    }
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Text('Edit Resep'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Text('Hapus'),
+                  ),
+                ],
+              ),
               onTap: () {
-                // Boleh navigasi ke detail resep di sini
+                // Navigasi ke detail resep jika diinginkan
               },
             ),
           );
@@ -1918,6 +1995,8 @@ Widget _buildUserRecipesSection() {
     ],
   );
 }
+
+
 
   Widget _buildFavoriteFoods() {
     return Container(
