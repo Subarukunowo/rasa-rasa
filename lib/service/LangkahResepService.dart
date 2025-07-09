@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../model/langkah_resep.dart';
 
 class LangkahResepService {
-  static const String baseUrl = 'http://127.0.0.1/rasa-rasa/api';
+  static const String baseUrl = 'http://192.168.1.5/rasa-rasa/api';
   static const String endpoint = '$baseUrl/langkah_resep';
 
   // ===== READ =====

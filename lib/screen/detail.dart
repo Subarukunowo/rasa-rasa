@@ -1,7 +1,9 @@
 // lib/detail.dart
 import 'package:flutter/material.dart';
 import '../model/recipe.dart';
+import '../model/langkah_resep.dart';
 import '../service/ResepService.dart';
+import '../service/LangkahResepService.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final String recipeId;
@@ -23,10 +25,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   Recipe? _recipe;
   String _selectedTab = 'Bahan-bahan';
 
+  List<LangkahResep> _langkahList = [];
+  bool _isLoadingSteps = true;
+
   @override
   void initState() {
     super.initState();
     _loadRecipeDetail();
+    _loadLangkahResep();
   }
 
   Future<void> _loadRecipeDetail() async {
@@ -52,7 +58,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         _isLoading = false;
       });
 
-      // Show error to user
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -81,12 +86,59 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       }
     } catch (e) {
       debugPrint('Error toggling favorite: $e');
-      // Still toggle locally for demo
       setState(() {
         _isFavorited = !_isFavorited;
       });
     }
   }
+
+  Future<void> _loadLangkahResep() async {
+    try {
+      final data = await LangkahResepService.getLangkahResepByResepId(int.parse(widget.recipeId));
+      if (mounted) {
+        setState(() {
+          _langkahList = data;
+          _isLoadingSteps = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Gagal memuat langkah resep: $e');
+      if (mounted) {
+        setState(() => _isLoadingSteps = false);
+      }
+    }
+  }
+
+  Widget _buildLangkahSection() {
+    if (_isLoadingSteps) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_langkahList.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Text('Belum ada langkah memasak.', style: TextStyle(color: Colors.grey)),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: _langkahList.map((step) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.orange,
+              child: Text('${step.urutan}', style: const TextStyle(color: Colors.white)),
+            ),
+            title: Text(step.judul),
+            subtitle: Text(step.deskripsi),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
 
   String _getBackButtonTitle() {
     switch (widget.previousScreen) {
@@ -111,27 +163,39 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   // Get dummy instructions based on recipe
   List<Map<String, dynamic>> _getInstructions() {
-    if (_recipe == null) return [];
-
-    // Generate dummy instructions based on recipe
-    return [
-      {
-        'step': 1,
-        'title': 'Persiapan Bahan',
-        'description': 'Siapkan semua bahan yang diperlukan: ${_recipe!.bahanUtama}. Pastikan semua bahan dalam kondisi segar dan berkualitas baik.',
-      },
-      {
-        'step': 2,
-        'title': 'Mulai Memasak',
-        'description': 'Mulai proses memasak ${_recipe!.namaMasakan} dengan tingkat kesulitan ${_recipe!.levelKesulitan.toLowerCase()}. Perhatikan waktu memasak sekitar ${_recipe!.waktuMemasak} menit.',
-      },
-      {
-        'step': 3,
-        'title': 'Finishing',
-        'description': 'Selesaikan proses memasak dan lakukan penyajian. ${_recipe!.deskripsi}',
-      },
-    ];
+  // Jika data hasil fetch dari API (_langkahList) sudah tersedia, gunakan itu
+  if (_langkahList.isNotEmpty) {
+    return _langkahList.map((step) {
+      return {
+        'step': step.urutan,
+        'title': step.judul,
+        'description': step.deskripsi,
+      };
+    }).toList();
   }
+
+  // Jika belum ada data (misalnya API gagal atau belum terisi), pakai dummy
+  if (_recipe == null) return [];
+
+  return [
+    {
+      'step': 1,
+      'title': 'Persiapan Bahan',
+      'description': 'Siapkan semua bahan yang diperlukan: ${_recipe!.bahanUtama}. Pastikan semua bahan dalam kondisi segar dan berkualitas baik.',
+    },
+    {
+      'step': 2,
+      'title': 'Mulai Memasak',
+      'description': 'Mulai proses memasak ${_recipe!.namaMasakan} dengan tingkat kesulitan ${_recipe!.levelKesulitan.toLowerCase()}. Perhatikan waktu memasak sekitar ${_recipe!.waktuMemasak} menit.',
+    },
+    {
+      'step': 3,
+      'title': 'Finishing',
+      'description': 'Selesaikan proses memasak dan lakukan penyajian. ${_recipe!.deskripsi}',
+    },
+  ];
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -470,21 +534,22 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Tab Content
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _selectedTab == 'Bahan-bahan'
-                        ? _buildIngredientsContent()
-                        : _buildInstructionsContent(),
-                  ),
+                    // Tab Content
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: _selectedTab == 'Bahan-bahan'
+                          ? _buildIngredientsContent()
+                          : _buildInstructionsContent(),
+                          
+                    ),
 
-                  const SizedBox(height: 100),
-                ],
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
 
       // Bottom Navigation Bar
       bottomNavigationBar: Container(
@@ -664,65 +729,83 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     );
   }
 
-  Widget _buildInstructionsContent() {
-    final instructions = _getInstructions();
+ Widget _buildInstructionsContent() {
+  if (_isLoadingSteps) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 32),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
 
-    return Column(
-      children: instructions.map<Widget>((instruction) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8B86D),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Text(
-                    instruction['step'].toString(),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+  if (_langkahList.isEmpty) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 32),
+      child: Center(
+        child: Text(
+          'Belum ada langkah memasak.',
+          style: TextStyle(color: Colors.grey),
+        ),
+      ),
+    );
+  }
+
+  return Column(
+    children: _langkahList.map<Widget>((step) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8B86D),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Text(
+                  step.urutan.toString(),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      instruction['title'] ?? '',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    step.judul,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      instruction['description'] ?? '',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                        height: 1.5,
-                      ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    step.deskripsi,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                      height: 1.5,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
+            ),
+          ],
+        ),
+      );
+    }).toList(),
+  );
+}
+
 
   Widget _buildBottomNavItem(IconData icon, bool isActive) {
     return Container(

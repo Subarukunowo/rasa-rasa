@@ -1,11 +1,13 @@
 // lib/service/TambahResep.dart
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
-import '../service/LangkahResepervice.dart';
+import '../service/LangkahResepService.dart';
 import '../service/ResepService.dart';
 import 'dart:io';
 import 'dart:convert';
 import '../screen/auth/ResepSuccessScreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class TambahResep extends StatefulWidget {
   const TambahResep({Key? key}) : super(key: key);
@@ -121,6 +123,7 @@ class _AddRecipeScreenState extends State<TambahResep> {
  Future<void> _submitForm() async {
   if (!_formKey.currentState!.validate()) return;
 
+  // Validasi setiap langkah
   for (int i = 0; i < _langkahList.length; i++) {
     final langkah = _langkahList[i];
     final error = LangkahResepService.validateLangkahResep(
@@ -139,6 +142,7 @@ class _AddRecipeScreenState extends State<TambahResep> {
     }
   }
 
+  // Validasi gambar
   if (_selectedImage == null) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -152,20 +156,30 @@ class _AddRecipeScreenState extends State<TambahResep> {
   setState(() => _isLoading = true);
 
   try {
+    // Konversi gambar ke base64
     final bytes = await _selectedImage!.readAsBytes();
     final base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
 
+    // Ambil waktu memasak
     int waktuMasak = int.tryParse(_waktuController.text) ?? -1;
     if (waktuMasak <= 0) throw Exception('Waktu memasak tidak valid');
 
-    // ⛔️ Tidak diubah
+    // Ambil user ID dari SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('user_id');
+    if (userId == null) {
+      throw Exception('User belum login');
+    }
+
+    // Siapkan langkah-langkah
     final langkahData = _langkahList.map((langkah) => {
       'judul': langkah.judulController.text.trim(),
       'deskripsi': langkah.deskripsiController.text.trim(),
     }).toList();
 
+    // Siapkan data resep
     final resepData = {
-      'user_id': 1,
+      'user_id': userId,
       'nama_masakan': _namaController.text.trim(),
       'kategori_id': _selectedKategori,
       'waktu_memasak': waktuMasak,
@@ -181,8 +195,10 @@ class _AddRecipeScreenState extends State<TambahResep> {
       'langkah': langkahData,
     };
 
+    // Kirim ke API
     final resepResponse = await ResepService.createResep(resepData);
 
+    // Cek apakah sukses
     bool isSuccess = resepResponse is Map &&
         (resepResponse['success'] == true ||
          resepResponse['success'] == 'true' ||
@@ -197,7 +213,7 @@ class _AddRecipeScreenState extends State<TambahResep> {
       );
     }
 
-    // ✅ Navigasi ke halaman sukses
+    // Navigasi ke halaman sukses
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -225,7 +241,6 @@ class _AddRecipeScreenState extends State<TambahResep> {
     if (mounted) setState(() => _isLoading = false);
   }
 }
-
 
 
   @override

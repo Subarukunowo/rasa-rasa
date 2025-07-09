@@ -1,7 +1,7 @@
 // lib/screen/EditRecipeScreen.dart
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
-import '../service/LangkahResepervice.dart';
+import '../service/LangkahResepService.dart';
 import '../service/ResepService.dart';
 import '../model/recipe.dart';
 import 'dart:io';

@@ -6,6 +6,7 @@ import '../route/app_routes.dart';
 import '../service/ResepService.dart'; // Import service yang sudah diperbaiki
 import 'detail.dart';
 import 'main_navigation.dart'; // Import halaman detail
+
 void main() {
   runApp(const MyApp());
 }
@@ -23,10 +24,12 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Roboto',
         useMaterial3: true,
       ),
-      home: const MainNavigation(), // Ini akan menampilkan HomeScreen sebagai default
+      home:
+          const MainNavigation(), // Ini akan menampilkan HomeScreen sebagai default
     );
   }
 }
+
 // ===== SERVICE LAYER - SINGLE DEFINITION =====
 class RecipeService {
   static Future<List<Recipe>> getRecipes() async {
@@ -43,7 +46,6 @@ class RecipeService {
       }
 
       return data;
-
     } catch (e) {
       debugPrint('❌ Error fetching recipes: $e');
       return _getDummyRecipes();
@@ -59,7 +61,8 @@ class RecipeService {
         kategoriId: 1,
         waktuMemasak: 20,
         bahanUtama: 'Nasi, Telur, Ayam, Kecap',
-        deskripsi: 'Nasi goreng dengan tambahan ayam suwir dan telur, cocok untuk sarapan.',
+        deskripsi:
+            'Nasi goreng dengan tambahan ayam suwir dan telur, cocok untuk sarapan.',
         createdAt: '2025-06-24 11:40:09',
         levelKesulitan: 'Sedang',
         jenisWaktu: 'Sarapan',
@@ -147,7 +150,8 @@ class HomeScreenState extends State<HomeScreen> {
 
   // ===== NAVIGATION METHODS =====
   void _navigateToRecipeDetail(Recipe recipe) {
-    debugPrint('🔄 Navigating to recipe detail: ${recipe.namaMasakan} (ID: ${recipe.id})');
+    debugPrint(
+        '🔄 Navigating to recipe detail: ${recipe.namaMasakan} (ID: ${recipe.id})');
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -203,8 +207,8 @@ class HomeScreenState extends State<HomeScreen> {
         child: isLoading
             ? _buildLoadingState()
             : errorMessage != null
-            ? _buildErrorState()
-            : _buildMainContent(),
+                ? _buildErrorState()
+                : _buildMainContent(),
       ),
       floatingActionButton: _buildFloatingActionButton(),
     );
@@ -450,7 +454,8 @@ class HomeScreenState extends State<HomeScreen> {
             child: GestureDetector(
               onTap: () {
                 final sarapanRecipes = recipes
-                    .where((r) => r.jenisWaktu.toLowerCase().contains('sarapan'))
+                    .where(
+                        (r) => r.jenisWaktu.toLowerCase().contains('sarapan'))
                     .toList();
                 if (sarapanRecipes.isNotEmpty) {
                   _navigateToRecipeDetail(sarapanRecipes.first);
@@ -539,207 +544,213 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildRecipeList() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Resep Terbaru',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade800,
-            ),
+Widget _buildRecipeList() {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Resep Terbaru',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade800,
           ),
-          const SizedBox(height: 15),
-          if (recipes.isEmpty)
-            _buildEmptyRecipeList()
-          else
-            ...recipes.take(5).map(_buildRecipeCard),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyRecipeList() {
-    return Container(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        children: [
-          Icon(
-            Icons.restaurant_menu,
-            size: 64,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Belum ada resep',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Tambahkan resep pertama Anda!',
-            style: TextStyle(color: Colors.grey),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: _navigateToAddRecipe,
-            icon: const Icon(Icons.add),
-            label: const Text('Tambah Resep'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecipeCard(Recipe recipe) {
-    return GestureDetector(
-      onTap: () => _navigateToRecipeDetail(recipe),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 15),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade800,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, 3),
-            ),
-          ],
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: Colors.orange,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.restaurant,
-                color: Colors.white,
-                size: 25,
-              ),
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    recipe.namaMasakan,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+        const SizedBox(height: 15),
+        if (recipes.isEmpty)
+          _buildEmptyRecipeList()
+        else
+          ...recipes.take(5).map((recipe) {
+            return GestureDetector(
+              onTap: () => _navigateToRecipeDetail(recipe),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 15),
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade800,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.3),
+                      spreadRadius: 1,
+                      blurRadius: 5,
+                      offset: const Offset(0, 3),
                     ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    recipe.deskripsi,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
+                  ],
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Gambar Recipe
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: recipe.gambarUrl != null && recipe.gambarUrl!.isNotEmpty
+                          ? Image.network(
+                              recipe.gambarUrl!,
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                    width: 60,
+                                    height: 60,
+                                    color: Colors.orange,
+                                    child: const Icon(Icons.broken_image, color: Colors.white),
+                                  ),
+                            )
+                          : Container(
+                              width: 60,
+                              height: 60,
+                              color: Colors.orange,
+                              child: const Icon(Icons.image_not_supported, color: Colors.white),
+                            ),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.access_time,
-                        size: 12,
-                        color: Colors.orange,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${recipe.waktuMemasak} Menit',
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                      const Icon(
-                        Icons.star,
-                        size: 12,
-                        color: Colors.orange,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        recipe.levelKesulitan,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  Row(
-                    children: [
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: const BoxDecoration(
-                          color: Colors.orange,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.person,
-                          size: 12,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Chef ${recipe.userName}',
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.orange,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          recipe.jenisWaktu,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
+                    const SizedBox(width: 15),
+                    
+                    // Content Area - Expanded to prevent overflow
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Nama Masakan
+                          Text(
+                            recipe.namaMasakan,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
+                          const SizedBox(height: 5),
+                          
+                          // Deskripsi
+                          Text(
+                            recipe.deskripsi,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          
+                          // Waktu dan Level Kesulitan
+                          Wrap(
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.access_time, size: 12, color: Colors.orange),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${recipe.waktuMemasak} Menit',
+                                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(width: 15),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.star, size: 12, color: Colors.orange),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    recipe.levelKesulitan,
+                                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 5),
+                          
+                          // Chef dan Jenis Waktu - Dalam satu row dengan proporsi yang tepat
+                          Row(
+                            children: [
+                              // Chef Info
+                              Container(
+                                width: 20,
+                                height: 20,
+                                decoration: const BoxDecoration(
+                                  color: Colors.orange,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.person, size: 12, color: Colors.white),
+                              ),
+                              const SizedBox(width: 8),
+                              
+                              // Chef Name - Expanded dengan flex 3
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  'Chef ${recipe.userName}',
+                                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                              
+                              const SizedBox(width: 8),
+                              
+                              // Jenis Waktu Tag - Flexible dengan flex 2 untuk ruang yang cukup
+                              Flexible(
+                                flex: 2,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    recipe.jenisWaktu,
+                                    style: const TextStyle(
+                                      color: Colors.white, 
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    
+                    // Bookmark Icon - Fixed position
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: Icon(Icons.bookmark_border, color: Colors.white, size: 20),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Icon(Icons.bookmark_border, color: Colors.white),
-          ],
-        ),
+            );
+          }),
+      ],
+    ),
+  );
+}
+  Widget _buildEmptyRecipeList() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.restaurant_menu, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(
+            'Belum ada resep yang ditambahkan',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+          ),
+        ],
       ),
     );
   }

@@ -13,6 +13,10 @@ import '../service/ApiService.dart'; // Add this import if BaseApiService is def
 import '../model/recipe.dart';
 import '../service/ResepService.dart'; // Add this import to use ResepService
 import 'editrecipescreen.dart'; // Import EditRecipeScreen if it exists in your project
+import 'editprofilescreen.dart'; // Import EditProfileScreen if it exists in your project
+import 'HelpScreen.dart';
+import 'SettingsScreen.dart';
+
 
 // ========================================
 // User Session Management
@@ -1613,66 +1617,76 @@ Future<void> _fetchUserFoodPhotos() async {
   }
 
   void _showProfileMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (BuildContext context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (BuildContext context) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
               ),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: const Icon(Icons.edit, color: primaryColor),
-                title: const Text('Edit Profile'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Add edit profile functionality
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.settings, color: primaryColor),
-                title: const Text('Settings'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Add settings functionality
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.help_outline, color: primaryColor),
-                title: const Text('Help & Support'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Add help functionality
-                },
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text('Logout', style: TextStyle(color: Colors.red)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _logout();
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
-  }
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.edit, color: primaryColor),
+              title: const Text('Edit Profile'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => EditProfileScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings, color: primaryColor),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => SettingsScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.help_outline, color: primaryColor),
+              title: const Text('Help & Support'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => HelpScreen()),
+                );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(context);
+                _logout();
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 
   Widget _buildProfileHeader() {
     return Container(

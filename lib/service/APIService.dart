@@ -9,15 +9,20 @@ import 'package:rasarasa_app/model/recipe.dart';
 // ===== BASE API SERVICE =====
 class BaseApiService {
   static const String baseUrl = 'http://192.168.1.5/rasa-rasa/api';
+static List<dynamic> handleResponse(http.Response response) {
+  final statusCode = response.statusCode;
 
-  static List<dynamic> handleResponse(http.Response response) {
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      return decoded['data'] ?? []; // Ambil hanya bagian data dari JSON
+  if (statusCode == 200) {
+    final decoded = jsonDecode(response.body);
+    if (decoded['success'] == true && decoded.containsKey('data')) {
+      return decoded['data'];
     } else {
-      throw Exception('Failed to load data: ${response.statusCode}');
+      throw Exception(decoded['message'] ?? 'Gagal mengambil data');
     }
+  } else {
+    throw Exception('Failed to load data: $statusCode');
   }
+}
 
  static Map<String, dynamic> handleSingleResponse(http.Response response) {
   final statusCode = response.statusCode;
