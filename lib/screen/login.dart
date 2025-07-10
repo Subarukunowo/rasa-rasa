@@ -1,11 +1,14 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 // Import your screens here
 import 'beranda.dart';
 import 'bookmark.dart';
-import 'profil.dart';
 import 'search.dart';
 import '../service/UserService.dart';
+import '../util/user_sessions.dart';
+import 'Profil.dart';
 // Import your API service here
 // import 'user_service.dart'; // Adjust the import path according to your project structure
 
@@ -718,15 +721,23 @@ Future<void> _login() async {
       _passwordController.text,
     );
 
-    // 🔍 DEBUGGING - Tampilkan hasil response
-    print('🟡 Login response: $result');
+    print('Login response: $result');
 
     if (result['success'] == true) {
-      if (result['user'] != null && result['token'] != null) {
-        print('✅ Login berhasil, token: ${result['token']}');
-        print('👤 User: ${result['user']}');
+      final user = result['user'];
+      final token = result['token'];
 
-        UserSession.instance.setUser(result['user'], result['token']);
+      if (user != null && token != null) {
+        // Set ke UserSession (session in-memory)
+        UserSession.instance.setUser(user, token);
+
+        // Simpan ke SharedPreferences (session tahan restart)
+        final prefs = await SharedPreferences.getInstance();
+        prefs.setString('user', jsonEncode(user));
+        prefs.setString('token', token);
+
+        print('User session set: ${UserSession.instance.currentUser}');
+        print('Token: ${UserSession.instance.token}');
 
         if (mounted) {
           Navigator.pushReplacement(
@@ -735,21 +746,19 @@ Future<void> _login() async {
           );
         }
       } else {
-        print('⚠️ Login berhasil tapi data user/token tidak lengkap');
         _showErrorDialog('Login gagal: Data tidak lengkap dari server');
       }
     } else {
-      print('❌ Login gagal: ${result['message']}');
-      _showErrorDialog(result['message'] ?? 'Login gagal');
+      final message = result['message'] ?? 'Login gagal';
+      _showErrorDialog(message);
     }
-
   } catch (e) {
-    print('❗ Exception saat login: $e');
     _showErrorDialog('Terjadi kesalahan: $e');
   } finally {
     if (mounted) setState(() => _isLoading = false);
   }
 }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

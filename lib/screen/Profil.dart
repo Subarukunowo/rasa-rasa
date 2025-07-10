@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 // Import your screens here
 import 'beranda.dart';
 import 'bookmark.dart';
-import 'profil.dart';
 import 'search.dart';
 // Import your API service here
 import '../service/UserService.dart'; // Adjust the import path according to your actual project structure
@@ -21,28 +20,7 @@ import 'SettingsScreen.dart';
 // ========================================
 // User Session Management
 // ========================================
-class UserSession {
-  static UserSession? _instance;
-  static UserSession get instance => _instance ??= UserSession._();
-  UserSession._();
-
-  Map<String, dynamic>? _currentUser;
-  String? _token;
-
-  void setUser(Map<String, dynamic> userData, String token) {
-    _currentUser = userData;
-    _token = token;
-  }
-
-  Map<String, dynamic>? get currentUser => _currentUser;
-  String? get token => _token;
-  bool get isLoggedIn => _currentUser != null && _token != null;
-
-  void clearSession() {
-    _currentUser = null;
-    _token = null;
-  }
-}
+import '../util/user_sessions.dart'; // Adjust the import path according to your actual project structure
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

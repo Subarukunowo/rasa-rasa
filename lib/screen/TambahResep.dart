@@ -6,7 +6,8 @@ import '../service/ResepService.dart';
 import 'dart:io';
 import 'dart:convert';
 import '../screen/auth/ResepSuccessScreen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../util/user_sessions.dart';
+
 
 
 class TambahResep extends StatefulWidget {
@@ -16,24 +17,23 @@ class TambahResep extends StatefulWidget {
   State<TambahResep> createState() => _AddRecipeScreenState();
 }
 
+
 class _AddRecipeScreenState extends State<TambahResep> {
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
 
-  // Controllers untuk data resep
+  // Controllers
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _bahanUtamaController = TextEditingController();
   final TextEditingController _deskripsiController = TextEditingController();
   final TextEditingController _waktuController = TextEditingController();
   final TextEditingController _videoController = TextEditingController();
 
-  // Data resep
   int _selectedKategori = 1;
   String _selectedDifficulty = 'Mudah';
   String _selectedTimeType = 'Menit';
   String _selectedJenisWaktu = 'Sarapan';
 
-  // List untuk langkah-langkah
   List<LangkahResepInput> _langkahList = [
     LangkahResepInput(urutan: 1),
   ];
@@ -53,6 +53,17 @@ class _AddRecipeScreenState extends State<TambahResep> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+
+    final user = UserSession.instance.currentUser;
+    final token = UserSession.instance.token;
+
+    debugPrint('📢 UserSession di TambahResep: $user');
+    debugPrint('📢 Token di TambahResep: $token');
+  }
+
+  @override
   void dispose() {
     _namaController.dispose();
     _bahanUtamaController.dispose();
@@ -60,13 +71,12 @@ class _AddRecipeScreenState extends State<TambahResep> {
     _waktuController.dispose();
     _videoController.dispose();
     _scrollController.dispose();
-
     for (var langkah in _langkahList) {
       langkah.dispose();
     }
-
     super.dispose();
   }
+
 
   void _addLangkah() {
     setState(() {
@@ -120,7 +130,7 @@ class _AddRecipeScreenState extends State<TambahResep> {
     }
   }
 
- Future<void> _submitForm() async {
+Future<void> _submitForm() async {
   if (!_formKey.currentState!.validate()) return;
 
   // Validasi setiap langkah
@@ -164,12 +174,12 @@ class _AddRecipeScreenState extends State<TambahResep> {
     int waktuMasak = int.tryParse(_waktuController.text) ?? -1;
     if (waktuMasak <= 0) throw Exception('Waktu memasak tidak valid');
 
-    // Ambil user ID dari SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getInt('user_id');
-    if (userId == null) {
+    // Ambil user ID dari UserSession
+    final user = UserSession.instance.currentUser;
+    if (user == null || user['id'] == null) {
       throw Exception('User belum login');
     }
+    final userId = user['id'];
 
     // Siapkan langkah-langkah
     final langkahData = _langkahList.map((langkah) => {
@@ -241,6 +251,7 @@ class _AddRecipeScreenState extends State<TambahResep> {
     if (mounted) setState(() => _isLoading = false);
   }
 }
+
 
 
   @override

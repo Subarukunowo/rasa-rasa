@@ -102,40 +102,29 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
   }
 
 
-  Future<void> _fetchRecipeDetails() async {
-    try {
-      final response = await http.get(
-        Uri.parse('${BaseApiService.baseUrl}/resep/read_detail.php?id=${widget.recipe.id}'),
-      );
+Future<void> _fetchRecipeDetails() async {
+  try {
+    final langkahList = await LangkahResepService.getLangkahResepByResepId(widget.recipe.id);
 
-      if (response.statusCode == 200) {
-        final result = jsonDecode(response.body);
-
-        if (result['success'] == true && result['langkah'] != null) {
-          List<dynamic> langkahData = result['langkah'];
-
-          setState(() {
-            _langkahList = langkahData.asMap().entries.map((entry) {
-              int index = entry.key;
-              var langkah = entry.value;
-              LangkahResepInput input = LangkahResepInput(urutan: index + 1);
-              input.judulController.text = langkah['judul'] ?? '';
-              input.deskripsiController.text = langkah['deskripsi'] ?? '';
-              return input;
-            }).toList();
-          });
-        }
-      }
-
-      if (_langkahList.isEmpty) {
-        setState(() => _langkahList = [LangkahResepInput(urutan: 1)]);
-      }
-    } catch (e) {
-      debugPrint('❌ Error fetching recipe details: $e');
+    if (langkahList.isNotEmpty) {
+      setState(() {
+        _langkahList = langkahList.asMap().entries.map((entry) {
+          int index = entry.key;
+          var langkah = entry.value;
+          LangkahResepInput input = LangkahResepInput(urutan: index + 1);
+          input.judulController.text = langkah.judul ?? '';
+          input.deskripsiController.text = langkah.deskripsi ?? '';
+          return input;
+        }).toList();
+      });
+    } else {
       setState(() => _langkahList = [LangkahResepInput(urutan: 1)]);
     }
+  } catch (e) {
+    debugPrint('❌ Error fetching recipe details: $e');
+    setState(() => _langkahList = [LangkahResepInput(urutan: 1)]);
   }
-
+}
   void _addLangkah() {
     setState(() {
       _langkahList.add(LangkahResepInput(urutan: _langkahList.length + 1));
@@ -187,116 +176,121 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
     }
   }
 
-  Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
+ Future<void> _submitForm() async {
+  if (!_formKey.currentState!.validate()) return;
 
-    // Validate steps
-    for (int i = 0; i < _langkahList.length; i++) {
-      final langkah = _langkahList[i];
-      final error = LangkahResepService.validateLangkahResep(
-        judul: langkah.judulController.text,
-        deskripsi: langkah.deskripsiController.text,
-      );
-      if (error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Langkah ${i + 1}: $error'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-    }
-
-    // Check if image exists (either new or current)
-    if (_selectedImage == null && (_currentImageUrl == null || _currentImageUrl!.isEmpty)) {
+  // Validate steps
+  for (int i = 0; i < _langkahList.length; i++) {
+    final langkah = _langkahList[i];
+    final error = LangkahResepService.validateLangkahResep(
+      judul: langkah.judulController.text,
+      deskripsi: langkah.deskripsiController.text,
+    );
+    if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Gambar masakan wajib dipilih'),
+        SnackBar(
+          content: Text('Langkah ${i + 1}: $error'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
-
-    setState(() => _isLoading = true);
-
-    try {
-      String? base64Image;
-      if (_selectedImage != null) {
-        final bytes = await _selectedImage!.readAsBytes();
-        base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
-      }
-
-      int waktuMasak = int.tryParse(_waktuController.text) ?? -1;
-      if (waktuMasak <= 0) throw Exception('Waktu memasak tidak valid');
-
-      final langkahData = _langkahList.map((l) => {
-        'judul': l.judulController.text.trim(),
-        'deskripsi': l.deskripsiController.text.trim(),
-      }).toList();
-
-      final resepData = {
-        'id': widget.recipe.id,
-        'user_id': widget.recipe.userId,
-        'nama_masakan': _namaController.text.trim(),
-        'kategori_id': _selectedKategori,
-        'waktu_memasak': waktuMasak,
-        'bahan_utama': _bahanUtamaController.text.trim(),
-        'deskripsi': _deskripsiController.text.trim(),
-        'level_kesulitan': _selectedDifficulty,
-        'jenis_waktu': _selectedJenisWaktu,
-        'satuan_waktu': _selectedTimeType,
-        'video': _videoController.text.trim().isEmpty ? null : _videoController.text.trim(),
-        'langkah': langkahData,
-      };
-
-      // Only include image if new image is selected
-      if (base64Image != null) {
-        resepData['gambar'] = base64Image;
-      }
-
-      // Call ResepService updateResep method
-      final response = await ResepService.updateResep(widget.recipe.id, resepData); // ✅ Benar
-      
-      bool isSuccess = response is Map &&
-          (response['success'] == true ||
-           response['success'] == 'true' ||
-           (response['message'] is String &&
-            RegExp(r'berhasil', caseSensitive: false).hasMatch(response['message'])));
-
-      if (!isSuccess) {
-        throw Exception(
-          response is Map 
-              ? (response['message'] ?? 'Respon tidak valid') 
-              : 'Gagal mengupdate resep'
-        );
-      }
-
-      if (mounted) {
-        Navigator.pop(context, true); // Return true to indicate success
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Resep berhasil diperbarui!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e, stackTrace) {
-      debugPrint('❌ Error saat update: $e');
-      debugPrintStack(stackTrace: stackTrace);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Terjadi kesalahan: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
+
+  // Check if image exists
+  if (_selectedImage == null && (_currentImageUrl == null || _currentImageUrl!.isEmpty)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Gambar masakan wajib dipilih'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  setState(() => _isLoading = true);
+
+  try {
+    String? base64Image;
+    if (_selectedImage != null) {
+      final bytes = await _selectedImage!.readAsBytes();
+      base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
+    }
+
+    int waktuMasak = int.tryParse(_waktuController.text) ?? -1;
+    if (waktuMasak <= 0) throw Exception('Waktu memasak tidak valid');
+
+    final langkahData = _langkahList.map((l) => {
+      'judul': l.judulController.text.trim(),
+      'deskripsi': l.deskripsiController.text.trim(),
+    }).toList();
+
+    final resepData = {
+      'id': widget.recipe.id,
+      'user_id': widget.recipe.userId,
+      'nama_masakan': _namaController.text.trim(),
+      'kategori_id': _selectedKategori,
+      'waktu_memasak': waktuMasak,
+      'bahan_utama': _bahanUtamaController.text.trim(),
+      'deskripsi': _deskripsiController.text.trim(),
+      'level_kesulitan': _selectedDifficulty,
+      'jenis_waktu': _selectedJenisWaktu,
+      'satuan_waktu': _selectedTimeType,
+      'video': _videoController.text.trim().isEmpty ? null : _videoController.text.trim(),
+      'langkah': langkahData,
+    };
+
+    if (base64Image != null) {
+      resepData['gambar'] = base64Image;
+    }
+
+    // Call ResepService updateResep method (gunakan service yang sudah konsisten)
+    final response = await ResepService.updateResep(widget.recipe.id, resepData);
+
+    bool isSuccess = response is Map &&
+        (response['success'] == true ||
+         response['success'] == 'true' ||
+         (response['message'] is String &&
+          RegExp(r'berhasil', caseSensitive: false).hasMatch(response['message'])));
+
+    if (!isSuccess) {
+      throw Exception(
+        response is Map 
+            ? (response['message'] ?? 'Respon tidak valid') 
+            : 'Gagal mengupdate resep'
+      );
+    }
+
+    // Update langkah di backend jika diperlukan (misalnya reorder, atau update urutan)
+    final langkahObjects = await LangkahResepService.createMultipleLangkahResep(widget.recipe.id, langkahData);
+
+    debugPrint('✅ Langkah yang berhasil dibuat/diupdate: ${langkahObjects.length}');
+
+    if (mounted) {
+      Navigator.pop(context, true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Resep berhasil diperbarui!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  } catch (e, stackTrace) {
+    debugPrint('❌ Error saat update: $e');
+    debugPrintStack(stackTrace: stackTrace);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
