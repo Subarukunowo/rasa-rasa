@@ -55,6 +55,18 @@ class LangkahResepService {
     final decoded = BaseApiService.handleSingleResponse(response);
     return decoded['success'] == true;
   }
+static Future<void> updateMultipleLangkahResep(int resepId, List<LangkahResep> langkahList) async {
+  for (var langkah in langkahList) {
+    final request = UpdateLangkahResepRequest(
+      id: langkah.id,
+      resepId: resepId,
+    urutan: langkah.urutan,
+  judul: langkah.judul.trim(),
+  deskripsi: langkah.deskripsi.trim(),
+    );
+    await updateLangkahResep(request);
+  }
+}
 
   /// Reorder
   static Future<bool> reorderLangkahResep(List<int> langkahIds) async {

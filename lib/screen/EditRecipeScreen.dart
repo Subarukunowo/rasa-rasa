@@ -6,9 +6,11 @@ import '../service/ResepService.dart';
 import '../model/recipe.dart';
 import 'dart:io';
 import 'dart:convert';
-import '../screen/auth/ResepSuccessScreen.dart';
+
 import 'package:http/http.dart' as http;
 import '../service/ApiService.dart';
+import '../util/user_sessions.dart';
+import '../screen/auth/editresepscreen.dart';
 
 class EditRecipeScreen extends StatefulWidget {
   final Recipe recipe;
@@ -176,10 +178,10 @@ Future<void> _fetchRecipeDetails() async {
     }
   }
 
- Future<void> _submitForm() async {
+Future<void> _submitForm() async {
   if (!_formKey.currentState!.validate()) return;
 
-  // Validate steps
+  // Validasi langkah-langkah resep
   for (int i = 0; i < _langkahList.length; i++) {
     final langkah = _langkahList[i];
     final error = LangkahResepService.validateLangkahResep(
@@ -197,7 +199,7 @@ Future<void> _fetchRecipeDetails() async {
     }
   }
 
-  // Check if image exists
+  // Validasi gambar
   if (_selectedImage == null && (_currentImageUrl == null || _currentImageUrl!.isEmpty)) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -227,7 +229,7 @@ Future<void> _fetchRecipeDetails() async {
 
     final resepData = {
       'id': widget.recipe.id,
-      'user_id': widget.recipe.userId,
+      'user_id': UserSession.instance.currentUser?['id'],
       'nama_masakan': _namaController.text.trim(),
       'kategori_id': _selectedKategori,
       'waktu_memasak': waktuMasak,
@@ -244,7 +246,7 @@ Future<void> _fetchRecipeDetails() async {
       resepData['gambar'] = base64Image;
     }
 
-    // Call ResepService updateResep method (gunakan service yang sudah konsisten)
+    // Kirim update ke backend
     final response = await ResepService.updateResep(widget.recipe.id, resepData);
 
     bool isSuccess = response is Map &&
@@ -255,23 +257,22 @@ Future<void> _fetchRecipeDetails() async {
 
     if (!isSuccess) {
       throw Exception(
-        response is Map 
-            ? (response['message'] ?? 'Respon tidak valid') 
-            : 'Gagal mengupdate resep'
+        response is Map
+            ? (response['message'] ?? 'Respon tidak valid')
+            : 'Gagal mengupdate resep',
       );
     }
 
-    // Update langkah di backend jika diperlukan (misalnya reorder, atau update urutan)
-    final langkahObjects = await LangkahResepService.createMultipleLangkahResep(widget.recipe.id, langkahData);
-
-    debugPrint('✅ Langkah yang berhasil dibuat/diupdate: ${langkahObjects.length}');
-
+    // Tampilkan ResepSuccessScreen
     if (mounted) {
-      Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Resep berhasil diperbarui!'),
-          backgroundColor: Colors.green,
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ResepSuccessScreens(
+            namaResep: _namaController.text.trim(),
+            levelKesulitan: _selectedDifficulty,
+            gambarPath: _currentImageUrl ?? widget.recipe.gambar,
+          ),
         ),
       );
     }
@@ -388,23 +389,23 @@ Future<void> _fetchRecipeDetails() async {
 
                     const SizedBox(height: 16),
 
-                    // ===== Kategori =====
-                    _buildDropdown<int>(
-                      value: _selectedKategori,
-                      label: 'Kategori',
-                      icon: Icons.category,
-                      items: _categories.map((cat) => DropdownMenuItem<int>(
-                        value: cat['id'],
-                        child: Text(cat['name']),
-                      )).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedKategori = value!;
-                        });
-                      },
-                    ),
+                      // ===== FIXED: Kategori Full Width =====
+              _buildDropdown<int>(
+                value: _selectedKategori,
+                label: 'Kategori',
+                icon: Icons.category,
+                items: _categories.map((cat) => DropdownMenuItem<int>(
+                  value: cat['id'],
+                  child: Text(cat['name']),
+                )).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedKategori = value!;
+                  });
+                },
+              ),
 
-                    const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
                     // ===== Kesulitan =====
                     _buildDropdown<String>(
