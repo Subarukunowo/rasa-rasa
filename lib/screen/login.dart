@@ -7,6 +7,7 @@ import 'beranda.dart';
 import 'bookmark.dart';
 import 'search.dart';
 import '../service/UserService.dart';
+
 import '../util/user_sessions.dart';
 import 'Profil.dart';
 // Import your API service here
@@ -238,7 +239,7 @@ class OnboardingScreen extends StatelessWidget {
             ),
           ),
         ),
-      ),
+      )
     );
   }
 }
@@ -255,6 +256,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController();
   bool _isPasswordHidden = true;
   bool _isLoading = false;
 
@@ -262,8 +264,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _usernameController.dispose();
     super.dispose();
   }
+InputDecoration _inputDecoration(String hint, {Widget? suffixIcon}) {
+  return InputDecoration(
+    hintText: hint,
+    hintStyle: TextStyle(
+      color: Colors.grey[400],
+      fontSize: 16,
+    ),
+    filled: true,
+    fillColor: Colors.grey[50],
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey[300]!),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey[300]!),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Color(0xFFE8B86D)),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Colors.red),
+    ),
+    contentPadding: const EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 16,
+    ),
+    suffixIcon: suffixIcon, // <-- support suffix icon
+  );
+}
 
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
@@ -274,6 +309,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
     return null;
   }
+  String? _validateUsername(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return 'Username tidak boleh kosong';
+  }
+  return null;
+}
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
@@ -303,234 +344,210 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+ Future<void> _register() async {
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() => _isLoading = true);
 
-    try {
-      // Prepare user data
-      final userData = {
-        'email': _emailController.text.trim(),
-        'password': _passwordController.text,
-        // Add other required fields based on your API
-        'created_at': DateTime.now().toIso8601String(),
-      };
+  try {
+    final userData = {
+      'email': _emailController.text.trim(),
+      'username': _usernameController.text.trim(),
+      'password': _passwordController.text,
+      'role': 'user',
+      'is_blocked': 0,
+    };
 
-      // Call API
-      // final result = await UserService.createUser(userData);
+    final result = await UserService.createUser(userData);
 
-      // Simulate API call for demo purposes
-      await Future.delayed(const Duration(seconds: 2));
-      
-      // Mock success response
-      final result = {'success': true, 'message': 'User created successfully'};
-
-      if (result['success'] == true) {
-        if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const RegisterSuccessScreen(),
-            ),
-          );
-        }
-      } else {
-        _showErrorDialog((result['message'] ?? 'Registrasi gagal').toString());
-      }
-    } catch (e) {
-      _showErrorDialog('Terjadi kesalahan: $e');
-    } finally {
+    if (result['success'] == true) {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const RegisterSuccessScreen(),
+          ),
+        );
       }
+    } else {
+      _showErrorDialog(result['message'] ?? 'Registrasi gagal');
+    }
+  } catch (e) {
+    _showErrorDialog('Terjadi kesalahan: $e');
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-        ),
-        title: const Text(
-          'Daftar',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: Colors.white,
+    appBar: AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      leading: IconButton(
+        onPressed: () => Navigator.pop(context),
+        icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
+      title: const Text(
+        'Daftar',
+        style: TextStyle(
+          color: Colors.black,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      centerTitle: true,
+    ),
+    body: SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
 
-              // Logo
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8B86D),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Icon(
-                        Icons.restaurant_menu,
-                        color: Colors.white,
-                        size: 20,
-                      ),
+            // Logo
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8B86D),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'RASARASA',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                        letterSpacing: 1,
-                      ),
+                    child: const Icon(
+                      Icons.restaurant_menu,
+                      color: Colors.white,
+                      size: 20,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'RASARASA',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
               ),
+            ),
 
-              const SizedBox(height: 40),
+            const SizedBox(height: 40),
 
-              // Title
-              const Text(
-                'Yuk mulai membuat\nmakanan enak',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFE8B86D),
-                  height: 1.3,
-                ),
+            // Title
+            const Text(
+              'Yuk mulai membuat\nmakanan enak',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFFE8B86D),
+                height: 1.3,
               ),
+            ),
 
-              const SizedBox(height: 40),
+            const SizedBox(height: 40),
 
-              // Email Field
-              const Text(
-                'Masukkan Email',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
+            // Username
+            const Text(
+              'Masukkan Username',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
               ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                validator: _validateEmail,
-                decoration: InputDecoration(
-                  hintText: 'Email Anda',
-                  hintStyle: TextStyle(
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _usernameController,
+              validator: _validateUsername,
+              decoration: _inputDecoration('Username Anda'),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Email
+            const Text(
+              'Masukkan Email',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              validator: _validateEmail,
+              decoration: _inputDecoration('Email Anda'),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Password
+            const Text(
+              'Masukkan Password',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _passwordController,
+              obscureText: _isPasswordHidden,
+              validator: _validatePassword,
+              decoration: _inputDecoration(
+                'Password Anda',
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    setState(() => _isPasswordHidden = !_isPasswordHidden);
+                  },
+                  icon: Icon(
+                    _isPasswordHidden ? Icons.visibility_off : Icons.visibility,
                     color: Colors.grey[400],
-                    fontSize: 16,
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE8B86D)),
-                  ),
-                  errorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.red),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
                   ),
                 ),
               ),
+            ),
 
-              const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
-              // Password Field
-              const Text(
-                'Masukkan Password',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
+            // Register Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _register,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE8B86D),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        'Daftar Sekarang',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: _isPasswordHidden,
-                validator: _validatePassword,
-                decoration: InputDecoration(
-                  hintText: 'Password Anda',
-                  hintStyle: TextStyle(
-                    color: Colors.grey[400],
-                    fontSize: 16,
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE8B86D)),
-                  ),
-                  errorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.red),
-                  ),
-                  suffixIcon: IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _isPasswordHidden = !_isPasswordHidden;
-                      });
-                    },
-                    icon: Icon(
-                      _isPasswordHidden ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.grey[400],
-                    ),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                ),
+
               ),
 
               const SizedBox(height: 32),
@@ -664,6 +681,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController();
   bool _isPasswordHidden = true;
   bool _rememberMe = false;
   bool _isLoading = false;
@@ -672,18 +690,16 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _usernameController.dispose();
     super.dispose();
   }
 
-  String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Email tidak boleh kosong';
-    }
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-      return 'Format email tidak valid';
-    }
-    return null;
+ String? _validateUsername(String? value) {
+  if (value == null || value.isEmpty) {
+    return 'Username tidak boleh kosong';
   }
+  return null;
+}
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
@@ -716,10 +732,11 @@ Future<void> _login() async {
   setState(() => _isLoading = true);
 
   try {
-    final result = await UserService.login(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
+   final result = await UserService.login(
+  _usernameController.text.trim(), // sebelumnya _emailController
+  _passwordController.text,
+);
+
 
     print('Login response: $result');
 
@@ -847,15 +864,15 @@ Future<void> _login() async {
               ),
               const SizedBox(height: 8),
               TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                validator: _validateEmail,
-                decoration: InputDecoration(
-                  hintText: 'aulia@gmail.com',
-                  hintStyle: TextStyle(
-                    color: Colors.grey[400],
-                    fontSize: 16,
-                  ),
+  controller: _usernameController,
+  keyboardType: TextInputType.text,
+  validator: _validateUsername,
+  decoration: InputDecoration(
+    hintText: 'aulia123',
+    hintStyle: TextStyle(
+      color: Colors.grey[400],
+      fontSize: 16,
+    ),
                   filled: true,
                   fillColor: Colors.grey[50],
                   border: OutlineInputBorder(

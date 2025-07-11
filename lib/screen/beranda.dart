@@ -41,7 +41,7 @@ class RecipeService {
       debugPrint('📡 Received ${data.length} recipes from API');
 
       if (data.isEmpty) {
-        debugPrint('⚠️ No recipes found, using dummy data');
+        debugPrint('⚠ No recipes found, using dummy data');
         return _getDummyRecipes();
       }
 

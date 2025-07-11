@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../model/recipe.dart';
 import 'SearchResultScreen.dart';
+import '../service/ResepService.dart'; // GANTI INI
 
 // Service untuk API
 class ApiService {
@@ -69,35 +70,35 @@ class ApiService {
     }
   }
 
-  static Future<List<Recipe>> searchRecipes(String query) async {
-    try {
-      final allRecipes = await getRecipes();
-      if (query.trim().isEmpty) return allRecipes;
+ static Future<List<Recipe>> searchRecipes(String query) async {
+  try {
+    final allRecipes = await ResepService.fetchResep(); // GANTI INI
 
-      final filtered = allRecipes.where((recipe) {
-        return recipe.namaMasakan.toLowerCase().contains(query.toLowerCase()) ||
-            recipe.bahanUtama.toLowerCase().contains(query.toLowerCase()) ||
-            recipe.deskripsi.toLowerCase().contains(query.toLowerCase());
-      }).toList();
+    if (query.trim().isEmpty) return allRecipes;
 
-      debugPrint('Search results for "$query": ${filtered.length} recipes');
-      return filtered;
-    } catch (e) {
-      debugPrint('Error searching recipes: $e');
-      return [];
-    }
+    final filtered = allRecipes.where((recipe) {
+      return recipe.namaMasakan.toLowerCase().contains(query.toLowerCase()) ||
+          recipe.bahanUtama.toLowerCase().contains(query.toLowerCase()) ||
+          recipe.deskripsi.toLowerCase().contains(query.toLowerCase());
+    }).toList();
+
+    debugPrint('Search results for "$query": ${filtered.length} recipes');
+    return filtered;
+  } catch (e) {
+    debugPrint('Error searching recipes: $e');
+    return [];
+  }
   }
 
   static Future<List<Recipe>> getNewRecipes() async {
-    try {
-      final allRecipes = await getRecipes();
-      // Sort by created_at (newest first)
-      allRecipes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return allRecipes.take(5).toList();
-    } catch (e) {
-      debugPrint('Error getting new recipes: $e');
-      return [];
-    }
+  try {
+    final allRecipes = await ResepService.fetchResep(); // GANTI INI
+    allRecipes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return allRecipes.take(5).toList();
+  } catch (e) {
+    debugPrint('Error getting new recipes: $e');
+    return [];
+  }
   }
 
   static List<Recipe> _getDummyRecipes() {

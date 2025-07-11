@@ -442,44 +442,25 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ),
                   ),
 
-                  // Time Info Cards - RESPONSIVE
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        // Responsive layout based on screen width
-                        if (constraints.maxWidth < 350) {
-                          // Small screen: Stack vertically
-                          return Column(
-                            children: [
-                              _buildTimeCard('Porsi', 'Persiapan', '2\npp'),
-                              const SizedBox(height: 12),
-                              _buildTimeCard('Waktu', 'Persiapan', '${(_recipe!.waktuMemasak * 0.3).round()}\nmin'),
-                              const SizedBox(height: 12),
-                              _buildTimeCard('Waktunya', 'Memasak', '${_recipe!.waktuMemasak}\nmin'),
-                            ],
-                          );
-                        } else {
-                          // Normal screen: Horizontal row
-                          return Row(
-                            children: [
-                              Expanded(
-                                child: _buildTimeCard('Porsi', 'Persiapan', '2\npp'),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildTimeCard('Waktu', 'Persiapan', '${(_recipe!.waktuMemasak * 0.3).round()}\nmin'),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildTimeCard('Waktunya', 'Memasak', '${_recipe!.waktuMemasak}\nmin'),
-                              ),
-                            ],
-                          );
-                        }
-                      },
-                    ),
-                  ),
+                Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 24),
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Expanded(
+        child: _buildTimeCard('Porsi', 'Persiapan', '2\npp'),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: _buildTimeCard('Waktu', 'Persiapan', '${(_recipe!.waktuMemasak * 0.3).round()}\nmin'),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: _buildTimeCard('Waktunya', 'Memasak', '${_recipe!.waktuMemasak}\nmin'),
+      ),
+    ],
+  ),
+),
 
                   const SizedBox(height: 32),
 
