@@ -64,7 +64,7 @@ static Future<Map<String, dynamic>> login(String username, String password) asyn
 }
 
 // ===== PROFIL SERVICE =====
-class ProfilService extends BaseApiService {
+class ProfilServices extends BaseApiService {
   static const String endpoint = '${BaseApiService.baseUrl}/profil';
 
   // Read all profiles

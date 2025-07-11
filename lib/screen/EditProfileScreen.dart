@@ -1,10 +1,12 @@
 // lib/screen/EditProfileScreen.dart
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter/material.dart';
-import '../service/UserService.dart';
-import '../util/user_sessions.dart';
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../service/ProfileService.dart';
+import '../util/user_sessions.dart';
+import '../util/ProfileSession.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({Key? key}) : super(key: key);
@@ -18,22 +20,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _scrollController = ScrollController();
 
   final TextEditingController _namaController = TextEditingController();
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _noHpController = TextEditingController();
-  final TextEditingController _alamatController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _bioController = TextEditingController();
 
-  String _selectedGender = 'Laki-laki';
   File? _selectedImage;
   String? _currentImageUrl;
   bool _isLoading = false;
   bool _isLoadingData = true;
-  bool _isPasswordVisible = false;
-  bool _isConfirmPasswordVisible = false;
-
-  final List<String> _genderOptions = ['Laki-laki', 'Perempuan'];
+  
+  // Variabel untuk menyimpan data profil dari server
+  Map<String, dynamic>? _profileData;
 
   @override
   void initState() {
@@ -44,12 +39,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void dispose() {
     _namaController.dispose();
-    _usernameController.dispose();
-    _emailController.dispose();
-    _noHpController.dispose();
-    _alamatController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _bioController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -57,21 +47,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _loadUserData() async {
     try {
       setState(() => _isLoadingData = true);
-
+      
+      // Ambil user_id dari UserSession
       final currentUser = UserSession.instance.currentUser;
       if (currentUser == null) {
         throw Exception('User session tidak ditemukan');
       }
 
-      _namaController.text = currentUser['nama'] ?? '';
-      _usernameController.text = currentUser['username'] ?? '';
-      _emailController.text = currentUser['email'] ?? '';
-      _noHpController.text = currentUser['no_hp'] ?? '';
-      _alamatController.text = currentUser['alamat'] ?? '';
-      _selectedGender = currentUser['jenis_kelamin'] ?? 'Laki-laki';
-      _currentImageUrl = currentUser['foto_profil'];
+      final userId = currentUser['id'];
+      if (userId == null) {
+        throw Exception('User ID tidak ditemukan dalam session');
+      }
+
+      debugPrint('📦 [EditProfile] Loading profile for user_id: $userId');
+
+      // Fetch data profil dari server berdasarkan user_id
+    final profileData = await ProfilService.fetchProfileByUserId(userId);
+      
+      if (profileData == null) {
+        // Jika profil belum ada, biarkan form kosong untuk pembuatan profil baru
+        debugPrint('📦 [EditProfile] No profile found, creating new profile');
+        _profileData = null;
+        _namaController.text = '';
+        _bioController.text = '';
+        _currentImageUrl = null;
+      } else {
+        // Jika profil sudah ada, load data ke form
+        debugPrint('📦 [EditProfile] Profile loaded: $profileData');
+        _profileData = profileData;
+        _namaController.text = profileData['nama_lengkap'] ?? '';
+        _bioController.text = profileData['bio'] ?? '';
+        _currentImageUrl = profileData['foto'];
+
+        // Update ProfileSession dengan data terbaru dari server
+        ProfileSession.instance.setProfile(profileData);
+      }
+
     } catch (e) {
-      debugPrint('❌ Error loading user data: $e');
+      debugPrint('❌ Gagal memuat data: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -81,7 +94,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoadingData = false);
+      setState(() => _isLoadingData = false);
     }
   }
 
@@ -89,100 +102,85 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-      });
+      setState(() => _selectedImage = File(pickedFile.path));
     }
   }
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_passwordController.text.isNotEmpty || _confirmPasswordController.text.isNotEmpty) {
-      if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password dan konfirmasi password tidak sama'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-      if (_passwordController.text.length < 6) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password minimal 6 karakter'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-    }
-
     setState(() => _isLoading = true);
 
     try {
       final currentUser = UserSession.instance.currentUser;
+      
       if (currentUser == null) {
-        throw Exception('User session tidak ditemukan');
+        throw Exception('User session tidak ditemukan.');
       }
 
-      String? base64Image;
-      if (_selectedImage != null) {
-        final bytes = await _selectedImage!.readAsBytes();
-        base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
+      final userId = currentUser['id'];
+      if (userId == null) {
+        throw Exception('User ID tidak ditemukan dalam session');
       }
 
-      final profileData = {
-        'user_id': currentUser['id'],
-        'nama': _namaController.text.trim(),
-        'username': _usernameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'no_hp': _noHpController.text.trim(),
-        'alamat': _alamatController.text.trim(),
-        'jenis_kelamin': _selectedGender,
+      final profileData = <String, dynamic>{
+        'user_id': userId,
+        'nama_lengkap': _namaController.text.trim(),
+        'bio': _bioController.text.trim(),
       };
 
-      if (_passwordController.text.isNotEmpty) {
-        profileData['password'] = _passwordController.text;
+      // Jika ini adalah update (profil sudah ada), sertakan id profil
+      if (_profileData != null && _profileData!['id'] != null) {
+        profileData['id'] = _profileData!['id'];
       }
 
-      if (base64Image != null) {
-        profileData['foto_profil'] = base64Image;
+      // Handle image upload
+      if (_selectedImage != null) {
+        final fileName = _selectedImage!.path.split('/').last;
+        final bytes = await _selectedImage!.readAsBytes();
+        final base64Image = base64Encode(bytes);
+
+        profileData['foto'] = fileName;
+        profileData['foto_base64'] = base64Image;
       }
 
-      Map<String, dynamic> response;
+      debugPrint('📤 [Profile Update] Sending data: $profileData');
 
-      try {
-        response = await UserService.updateUser(currentUser['id'], profileData);
-      } catch (e) {
-        response = await ProfilService.updateProfile(currentUser['id'], profileData);
+      final response = await ProfilService.updateProfile(profileData);
+      debugPrint('📥 [Profile Update] Response: $response');
+
+      if (response == null) {
+        throw Exception('Tidak ada respons dari server');
       }
 
-      bool isSuccess = response['success'] == true ||
+      final isResponseFull = response.containsKey('nama_lengkap') && response.containsKey('bio');
+      final isSuccess = response['success'] == true ||
           response['success'] == 'true' ||
           (response['message'] is String &&
-           RegExp(r'berhasil', caseSensitive: false).hasMatch(response['message']));
+              RegExp(r'berhasil', caseSensitive: false).hasMatch(response['message']));
 
-      if (!isSuccess) {
-        throw Exception(response['message'] ?? 'Gagal mengupdate profil');
+      if (!isResponseFull && !isSuccess) {
+        throw Exception(response['message'] ?? 'Gagal memperbarui profil');
       }
 
-      final updatedUserData = Map<String, dynamic>.from(currentUser);
-      updatedUserData.addAll({
-        'nama': _namaController.text.trim(),
-        'username': _usernameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'no_hp': _noHpController.text.trim(),
-        'alamat': _alamatController.text.trim(),
-        'jenis_kelamin': _selectedGender,
-      });
+      // Perbarui data profil lokal
+      final updatedProfileData = <String, dynamic>{
+        'id': response['id'] ?? _profileData?['id'],
+        'user_id': userId,
+        'nama_lengkap': _namaController.text.trim(),
+        'bio': _bioController.text.trim(),
+      };
 
-      if (base64Image != null) {
-        updatedUserData['foto_profil'] = base64Image;
+      if (_selectedImage != null) {
+        updatedProfileData['foto'] = _selectedImage!.path.split('/').last;
+      } else if (response.containsKey('foto')) {
+        updatedProfileData['foto'] = response['foto'];
+      } else {
+        updatedProfileData['foto'] = _currentImageUrl;
       }
 
-      UserSession.instance.setUser(updatedUserData, UserSession.instance.token!);
+      // Update ProfileSession dengan data yang baru
+      ProfileSession.instance.setProfile(updatedProfileData);
 
       if (mounted) {
         Navigator.pop(context, true);
@@ -194,7 +192,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         );
       }
     } catch (e, stackTrace) {
-      debugPrint('❌ Error saat update profil: $e');
+      debugPrint('❌ Error update profil: $e');
       debugPrintStack(stackTrace: stackTrace);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -205,7 +203,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
     }
   }
 
@@ -213,7 +211,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Profil'),
+        title: Text(_profileData == null ? 'Buat Profil' : 'Edit Profil'),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
         actions: [
@@ -264,13 +262,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     // ===== SECTION: FOTO PROFIL =====
                     _buildSectionHeader('Foto Profil', Icons.person),
                     const SizedBox(height: 16),
-
-                    // ===== IMAGE PICKER SECTION =====
                     _buildImagePicker(),
                     const SizedBox(height: 32),
 
-                    // ===== SECTION: INFORMASI PRIBADI =====
-                    _buildSectionHeader('Informasi Pribadi', Icons.info),
+                    // ===== SECTION: INFORMASI =====
+                    _buildSectionHeader('Informasi Profil', Icons.info),
                     const SizedBox(height: 16),
 
                     _buildTextFormField(
@@ -292,136 +288,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     const SizedBox(height: 16),
 
                     _buildTextFormField(
-                      controller: _usernameController,
-                      label: 'Username',
-                      hint: 'Masukkan username',
-                      icon: Icons.account_circle_outlined,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Username wajib diisi';
-                        }
-                        if (value.trim().length < 3) {
-                          return 'Username minimal 3 karakter';
-                        }
-                        if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value.trim())) {
-                          return 'Username hanya boleh huruf, angka, dan underscore';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _buildTextFormField(
-                      controller: _emailController,
-                      label: 'Email',
-                      hint: 'contoh@email.com',
-                      icon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Email wajib diisi';
-                        }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
-                          return 'Format email tidak valid';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _buildTextFormField(
-                      controller: _noHpController,
-                      label: 'Nomor HP',
-                      hint: '08xxxxxxxxxx',
-                      icon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Nomor HP wajib diisi';
-                        }
-                        if (!RegExp(r'^[0-9+\-\s()]+$').hasMatch(value.trim())) {
-                          return 'Format nomor HP tidak valid';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // ===== Jenis Kelamin =====
-                    _buildDropdown<String>(
-                      value: _selectedGender,
-                      label: 'Jenis Kelamin',
-                      icon: Icons.wc_outlined,
-                      items: _genderOptions.map((gender) => DropdownMenuItem<String>(
-                        value: gender,
-                        child: Text(gender),
-                      )).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedGender = value!;
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _buildTextFormField(
-                      controller: _alamatController,
-                      label: 'Alamat',
-                      hint: 'Masukkan alamat lengkap',
-                      icon: Icons.location_on_outlined,
+                      controller: _bioController,
+                      label: 'Bio',
+                      hint: 'Tulis sesuatu tentang dirimu',
+                      icon: Icons.info_outline,
                       maxLines: 3,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Alamat wajib diisi';
+                          return 'Bio tidak boleh kosong';
                         }
                         return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // ===== SECTION: UBAH PASSWORD =====
-                    _buildSectionHeader('Ubah Password (Opsional)', Icons.lock_outline),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Kosongkan jika tidak ingin mengubah password',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildPasswordFormField(
-                      controller: _passwordController,
-                      label: 'Password Baru',
-                      hint: 'Masukkan password baru',
-                      icon: Icons.lock_outline,
-                      isVisible: _isPasswordVisible,
-                      onToggleVisibility: () {
-                        setState(() {
-                          _isPasswordVisible = !_isPasswordVisible;
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _buildPasswordFormField(
-                      controller: _confirmPasswordController,
-                      label: 'Konfirmasi Password',
-                      hint: 'Ulangi password baru',
-                      icon: Icons.lock_outline,
-                      isVisible: _isConfirmPasswordVisible,
-                      onToggleVisibility: () {
-                        setState(() {
-                          _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                        });
                       },
                     ),
 
@@ -449,16 +325,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     height: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor:
+                                          AlwaysStoppedAnimation<Color>(
+                                              Colors.white),
                                     ),
                                   ),
                                   SizedBox(width: 12),
                                   Text('Menyimpan...'),
                                 ],
                               )
-                            : const Text(
-                                'UPDATE PROFIL',
-                                style: TextStyle(
+                            : Text(
+                                _profileData == null ? 'BUAT PROFIL' : 'UPDATE PROFIL',
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -590,67 +468,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
-    );
-  }
-
-  Widget _buildPasswordFormField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    required bool isVisible,
-    required VoidCallback onToggleVisibility,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: !isVisible,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.orange),
-        suffixIcon: IconButton(
-          onPressed: onToggleVisibility,
-          icon: Icon(
-            isVisible ? Icons.visibility : Icons.visibility_off,
-            color: Colors.grey,
-          ),
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.orange, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-    );
-  }
-
-  Widget _buildDropdown<T>({
-    required T value,
-    required String label,
-    required IconData icon,
-    required List<DropdownMenuItem<T>> items,
-    required void Function(T?) onChanged,
-  }) {
-    return DropdownButtonFormField<T>(
-      value: value,
-      isExpanded: true,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: Colors.orange),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.orange, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-      items: items,
-      onChanged: onChanged,
     );
   }
 }

@@ -15,6 +15,7 @@ import 'editrecipescreen.dart'; // Import EditRecipeScreen if it exists in your 
 import 'editprofilescreen.dart'; // Import EditProfileScreen if it exists in your project
 import 'HelpScreen.dart';
 import 'SettingsScreen.dart';
+import '../service/ProfileService.dart';
 
 
 // ========================================
@@ -1274,48 +1275,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadUserProfile() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
+  try {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-      // Get user data from session
-      final currentUser = UserSession.instance.currentUser;
-      
-      if (currentUser != null) {
-        // Use logged in user data
-        _userProfile = {
-          'name': currentUser['name'] ?? 'User',
-          'email': currentUser['email'] ?? '',
-          'bio': 'Selamat datang di RASARASA!',
-          'profile_image': 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-        };
-      } else {
-        // Fallback if no session data
-        _userProfile = {
-          'name': 'Guest User',
-          'bio': 'Please login to see your profile',
-          'profile_image': null,
-          'email': 'guest@rasarasa.com',
-        };
-      }
+    // Ambil user dari session
+    final currentUser = UserSession.instance.currentUser;
 
-      await Future.wait([
-        _fetchUserFoodPhotos(),
-        _fetchFavoriteRecipes(),
-        _fetchFavoriteFoods(),
-      ]);
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load profile data: ${e.toString()}';
-      });
-      debugPrint('Error loading profile: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    if (currentUser == null || currentUser['id'] == null) {
+      throw Exception('User belum login atau user ID tidak ditemukan.');
     }
+
+    final int userId = currentUser['id'];
+
+    // Ambil data profil dari API
+    final profileData = await ProfilService.fetchProfileByUserId(userId);
+
+    if (profileData == null) {
+      throw Exception('Profil tidak ditemukan.');
+    }
+
+    // Simpan ke variabel state
+    _userProfile = {
+      'name': profileData['nama_lengkap'] ?? currentUser['name'] ?? 'User',
+      'email': currentUser['email'] ?? '',
+      'bio': profileData['bio'] ?? 'Selamat datang di RASARASA!',
+      'profile_image': profileData['foto'] != null
+          ? '${BaseApiService.baseUrl}/images/${profileData['foto']}'
+          : null,
+    };
+
+    // Load elemen lain (opsional)
+    await Future.wait([
+      _fetchUserFoodPhotos(),
+      _fetchFavoriteRecipes(),
+      _fetchFavoriteFoods(),
+    ]);
+
+  } catch (e) {
+    setState(() {
+      _errorMessage = 'Gagal memuat data profil: ${e.toString()}';
+    });
+    debugPrint('❌ Error loading profile: $e');
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
   }
 
  List<Recipe> _userRecipes = [];
