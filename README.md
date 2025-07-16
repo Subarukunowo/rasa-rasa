@@ -1,16 +1,23 @@
-# rasarasa
+# 🍲 RasaRasa — Aplikasi Resep Masakan Flutter
 
-A new Flutter project.
+**RasaRasa** adalah aplikasi Flutter yang memungkinkan pengguna untuk menjelajahi, mencari, dan menyimpan berbagai resep masakan. Proyek ini dirancang dengan antarmuka yang modern dan pengalaman pengguna yang intuitif.
 
-## Getting Started
+## ✨ Fitur Utama
 
-This project is a starting point for a Flutter application.
+- 🔐 **Autentikasi**: Login & Registrasi pengguna.
+- 📄 **Detail Resep**: Lihat resep lengkap, termasuk gambar, deskripsi, waktu memasak, dan langkah-langkah.
+- 📷 **Tambah Resep**: Unggah resep sendiri lengkap dengan foto makanan.
+- ❤️ **Bookmark**: Simpan resep favorit.
+- 🔍 **Pencarian**: Cari resep berdasarkan nama atau kategori.
+- ⚙️ **Pengaturan Profil**: Edit profil, ubah foto, dan informasi akun.
 
-A few resources to get you started if this is your first Flutter project:
+## 🧰 Teknologi yang Digunakan
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- **Flutter** (frontend)
+- **Dart** sebagai bahasa utama
+- **PHP & MySQL** untuk backend API
+- **HTTP package** untuk komunikasi dengan server
+- **Image Picker** untuk unggah gambar
+- **Stateful Widgets** untuk UI dinamis
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 📁 Struktur Folder (lib/)
