@@ -41,9 +41,11 @@
    cd rasa-rasa
 
 2. Install dependencies:
+   ```bash
    flutter pub get
 
 3. Jalankan aplikasi:
+    ```bash
    flutter run
 
  ## 📌 Status Proyek
