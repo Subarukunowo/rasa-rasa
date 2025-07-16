@@ -21,7 +21,7 @@
 - **Stateful Widgets** untuk UI dinamis
 
 ## 📁 Struktur Folder (lib/)
-```text
+
 ├── model/ # Model data (resep, user, dll)
 ├── route/ # Routing aplikasi
 ├── screen/ # Layar utama (home, login, profil, dll)
