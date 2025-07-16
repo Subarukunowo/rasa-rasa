@@ -21,3 +21,35 @@
 - **Stateful Widgets** untuk UI dinamis
 
 ## 📁 Struktur Folder (lib/)
+├── model/ # Model data (resep, user, dll)
+├── route/ # Routing aplikasi
+├── screen/ # Layar utama (home, login, profil, dll)
+│ ├── auth/ # Layar otentikasi
+│ ├── beranda.dart
+│ ├── detail.dart
+│ └── ...
+├── service/ # Pemanggilan API
+├── util/ # Utility dan session helper
+├── widget/ # Komponen UI custom
+
+
+## 🚀 Cara Menjalankan
+
+1. Clone repository ini:
+   ```bash
+   git clone https://github.com/Subarukunowo/rasa-rasa.git
+   cd rasa-rasa
+
+2. Install dependencies:
+   flutter pub get
+
+3. Jalankan aplikasi:
+   flutter run
+
+ ## 📌 Status Proyek
+ **🚧** Masih dalam tahap pengembangan aktif. Beberapa fitur utama sudah selesai, namun terus diperbarui dan ditingkatkan.
+
+ ##📜 Lisensi
+ Proyek ini dilisensikan di bawah lisensi MIT. Silakan gunakan, modifikasi, dan kontribusi dengan bebas.
+
+ 💡 Developed with ❤️ by Subarukunowo
